@@ -73,11 +73,21 @@
   .btn.primary{background:var(--text);color:#fff;border-color:var(--text);}
   .btn.primary:hover{opacity:.9;}
   .btn.danger-outline{color:var(--prod);border-color:var(--prod-bg);}
-  td.delcol{width:28px;padding:8px 6px;}
-  .delbtn{width:20px;height:20px;border:none;background:none;color:var(--text-3);
-    cursor:pointer;font-size:14px;border-radius:4px;line-height:1;}
+  td.delcol{width:52px;padding:8px 6px;white-space:nowrap;}
+  .delbtn,.editbtn,.savebtn,.cancelbtn{width:20px;height:20px;border:none;background:none;color:var(--text-3);
+    cursor:pointer;font-size:13px;border-radius:4px;line-height:1;}
   .delbtn:hover{background:var(--prod-bg);color:var(--prod);}
-  th.delcol{width:28px;}
+  .editbtn:hover{background:var(--accent-bg);color:var(--accent);}
+  .savebtn{color:var(--qa);width:auto;padding:0 6px;font-size:11.5px;font-weight:600;}
+  .savebtn:hover{background:var(--qa-bg);}
+  .cancelbtn{width:auto;padding:0 6px;font-size:11.5px;}
+  .cancelbtn:hover{background:var(--none-bg);}
+  th.delcol{width:52px;}
+  tr.editing td{background:var(--accent-bg);}
+  .editin{width:100%;min-width:60px;height:26px;border:1px solid var(--line-strong);border-radius:5px;
+    padding:0 6px;font-size:12px;background:#fff;box-sizing:border-box;}
+  .editin:focus{outline:none;border-color:var(--accent);}
+  select.editin{padding:0 2px;}
 
   .modal-bg{position:static;display:none;margin-bottom:14px;background:var(--surface);
     border:1px solid var(--line);border-radius:10px;padding:16px;}
@@ -163,7 +173,7 @@
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-app.js";
 import {
-  getFirestore, collection, onSnapshot, addDoc, deleteDoc, doc,
+  getFirestore, collection, onSnapshot, addDoc, deleteDoc, doc, updateDoc,
   getDocs, writeBatch
 } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js";
 
@@ -315,7 +325,7 @@ const empty=document.getElementById('empty');
 const countEl=document.getElementById('count');
 const searchEl=document.getElementById('search');
 const socSel=document.getElementById('socSel');
-let envFilter='ALL', sortKey='device', sortDir=1;
+let envFilter='ALL', sortKey='device', sortDir=1, editingId=null;
 
 function populateSocOptions(){
   const current = socSel.value;
@@ -337,7 +347,7 @@ function renderStats(){
   `;
 }
 
-function esc(s){return s.replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));}
+function esc(s){return s.replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));}
 function hl(text,q){
   if(!q) return esc(text);
   const i=text.toLowerCase().indexOf(q.toLowerCase());
@@ -371,9 +381,14 @@ function render(){
   countEl.textContent = filtered.length+' / '+rows.length+'개 표시';
   if(filtered.length===0){ tbody.innerHTML=''; empty.textContent='검색 결과가 없습니다.'; empty.style.display='block'; return; }
   empty.style.display='none';
-  tbody.innerHTML = filtered.map(r=>`
+  tbody.innerHTML = filtered.map(r=>{
+    if(r._id===editingId) return editRowHtml(r);
+    return `
     <tr>
-      <td class="delcol"><button class="delbtn" data-id="${r._id}" aria-label="삭제" title="삭제">&times;</button></td>
+      <td class="delcol">
+        <button class="editbtn" data-id="${r._id}" aria-label="수정" title="수정">&#9998;</button>
+        <button class="delbtn" data-id="${r._id}" aria-label="삭제" title="삭제">&times;</button>
+      </td>
       <td class="dev">${hl(r.device,q)}</td>
       <td>${esc(r.soc)}</td>
       <td>${badge(r.env)}</td>
@@ -385,7 +400,41 @@ function render(){
       <td>${hl(r.sname||'',q)}</td>
       <td class="cmt">${hl(r.comment,q)}</td>
     </tr>
-  `).join('');
+  `;
+  }).join('');
+  tbody.querySelectorAll('.editbtn').forEach(btn=>{
+    btn.addEventListener('click',()=>{
+      editingId=btn.dataset.id;
+      render();
+    });
+  });
+  tbody.querySelectorAll('.cancelbtn').forEach(btn=>{
+    btn.addEventListener('click',()=>{
+      editingId=null;
+      render();
+    });
+  });
+  tbody.querySelectorAll('.savebtn').forEach(btn=>{
+    btn.addEventListener('click',()=>{
+      const id=btn.dataset.id;
+      const tr=btn.closest('tr');
+      const get=name=>tr.querySelector(`[name="${name}"]`).value.trim();
+      const updated={
+        device:get('device'), soc:get('soc'), env:get('env'),
+        ip:get('ip'), serial:get('serial'), mac:get('mac'),
+        account:get('account'), orgid:get('orgid'), sname:get('sname'),
+        comment:get('comment')
+      };
+      if(!updated.device){ alert('Device 이름은 필수입니다.'); return; }
+      btn.disabled=true;
+      updateDoc(doc(db,'devices',id), updated).then(()=>{
+        editingId=null;
+      }).catch(err=>{
+        alert('수정 실패: '+err.message);
+        btn.disabled=false;
+      });
+    });
+  });
   tbody.querySelectorAll('.delbtn').forEach(btn=>{
     btn.addEventListener('click',()=>{
       const id=btn.dataset.id;
@@ -399,6 +448,33 @@ function render(){
       }
     });
   });
+}
+
+function envOptions(current){
+  return ['','QA','STG','Prod'].map(v=>
+    `<option value="${v}" ${v===current?'selected':''}>${v===''?'미배정':v}</option>`
+  ).join('');
+}
+
+function editRowHtml(r){
+  return `
+    <tr class="editing">
+      <td class="delcol">
+        <button class="savebtn" data-id="${r._id}" title="저장">저장</button>
+        <button class="cancelbtn" title="취소">취소</button>
+      </td>
+      <td><input class="editin" name="device" value="${esc(r.device||'')}"></td>
+      <td><input class="editin" name="soc" value="${esc(r.soc||'')}"></td>
+      <td><select class="editin" name="env">${envOptions(r.env||'')}</select></td>
+      <td><input class="editin" name="ip" value="${esc(r.ip||'')}"></td>
+      <td><input class="editin" name="serial" value="${esc(r.serial||'')}"></td>
+      <td><input class="editin" name="mac" value="${esc(r.mac||'')}"></td>
+      <td><input class="editin" name="account" value="${esc(r.account||'')}"></td>
+      <td><input class="editin" name="orgid" value="${esc(r.orgid||'')}"></td>
+      <td><input class="editin" name="sname" value="${esc(r.sname||'')}"></td>
+      <td><input class="editin" name="comment" value="${esc(r.comment||'')}"></td>
+    </tr>
+  `;
 }
 
 searchEl.addEventListener('input',render);
