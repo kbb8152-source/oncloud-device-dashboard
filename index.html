@@ -137,7 +137,19 @@
       <div class="form-field"><label>호환성</label>
         <label style="display:flex;align-items:center;height:34px;"><input type="checkbox" id="f_compat" style="width:16px;height:16px;margin:0;"></label>
       </div>
-      <div class="form-field"><label>Platform</label><input id="f_soc" placeholder="예: WN7"></div>
+      <div class="form-field"><label>Platform</label>
+        <select id="f_soc">
+          <option value="">미지정</option>
+          <option value="WN7">WN7</option>
+          <option value="WN8">WN8</option>
+          <option value="WN9">WN9</option>
+          <option value="Q AI">Q AI</option>
+          <option value="P AI">P AI</option>
+          <option value="CV2">CV2</option>
+          <option value="CV5">CV5</option>
+          <option value="NOVATEK">NOVATEK</option>
+        </select>
+      </div>
       <div class="form-field"><label>환경</label>
         <select id="f_env"><option value="">미배정</option><option value="QA">QA</option><option value="STG">STG</option><option value="Prod">Prod</option></select>
       </div>
@@ -475,6 +487,14 @@ function render(){
   });
 }
 
+const PLATFORM_OPTIONS=["WN7","WN8","WN9","Q AI","P AI","CV2","CV5","NOVATEK"];
+function platformOptions(current){
+  const opts=['']
+    .concat(PLATFORM_OPTIONS)
+    .concat((current && !PLATFORM_OPTIONS.includes(current)) ? [current] : []);
+  return opts.map(v=>`<option value="${esc(v)}" ${v===current?'selected':''}>${v===''?'미지정':esc(v)}</option>`).join('');
+}
+
 function envOptions(current){
   return ['','QA','STG','Prod'].map(v=>
     `<option value="${v}" ${v===current?'selected':''}>${v===''?'미배정':v}</option>`
@@ -490,7 +510,7 @@ function editRowHtml(r){
       </td>
       <td><input class="editin" name="device" value="${esc(r.device||'')}"></td>
       <td style="text-align:center;"><input type="checkbox" name="compat" ${r.compat?'checked':''}></td>
-      <td><input class="editin" name="soc" value="${esc(r.soc||'')}"></td>
+      <td><select class="editin" name="soc">${platformOptions(r.soc||'')}</select></td>
       <td><select class="editin" name="env">${envOptions(r.env||'')}</select></td>
       <td><input class="editin" name="ip" value="${esc(r.ip||'')}"></td>
       <td><input class="editin" name="serial" value="${esc(r.serial||'')}"></td>
