@@ -456,6 +456,7 @@ function render(){
       btn.disabled=true;
       updateDoc(doc(db,'devices',id), updated).then(()=>{
         editingId=null;
+        render();
       }).catch(err=>{
         alert('수정 실패: '+err.message);
         btn.disabled=false;
