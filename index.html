@@ -116,6 +116,11 @@
     <span class="chip" data-env="Prod">Prod</span>
     <span class="chip" data-env="NONE">미배정</span>
     <select class="sel" id="socSel"><option value="ALL">전체 Platform</option></select>
+    <select class="sel" id="compatSel">
+      <option value="ALL">호환성 전체</option>
+      <option value="Y">호환 O</option>
+      <option value="N">호환 X</option>
+    </select>
     <span class="count" id="count"></span>
   </div>
 
@@ -330,6 +335,7 @@ const empty=document.getElementById('empty');
 const countEl=document.getElementById('count');
 const searchEl=document.getElementById('search');
 const socSel=document.getElementById('socSel');
+const compatSel=document.getElementById('compatSel');
 let envFilter='ALL', sortKey='device', sortDir=1, editingId=null;
 
 function populateSocOptions(){
@@ -369,10 +375,13 @@ function render(){
   const q=searchEl.value.trim();
   const qLower=q.toLowerCase();
   const soc=socSel.value;
+  const compatF=compatSel.value;
   let filtered=rows.filter(r=>{
     if(envFilter==='NONE' && r.env!=='') return false;
     if(envFilter!=='ALL' && envFilter!=='NONE' && r.env!==envFilter) return false;
     if(soc!=='ALL' && r.soc!==soc) return false;
+    if(compatF==='Y' && !r.compat) return false;
+    if(compatF==='N' && r.compat) return false;
     if(q){
       const hay=[r.device,r.soc,r.ip,r.serial,r.mac,r.account,r.orgid,r.sname,r.comment].join(' ').toLowerCase();
       if(!hay.includes(qLower)) return false;
@@ -496,6 +505,7 @@ function editRowHtml(r){
 
 searchEl.addEventListener('input',render);
 socSel.addEventListener('change',render);
+compatSel.addEventListener('change',render);
 document.querySelectorAll('.chip').forEach(chip=>{
   chip.addEventListener('click',()=>{
     document.querySelectorAll('.chip').forEach(c=>c.classList.remove('active'));
