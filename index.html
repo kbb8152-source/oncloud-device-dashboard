@@ -212,6 +212,7 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 const devicesCol = collection(db, "devices");
+const ADMIN_PASSWORD = "1234"; // 삭제 시 요구되는 관리자 비밀번호. 필요하면 이 값만 바꾸면 됩니다.
 
 const DATA = [
 ["XNP-C6403RW","WN7","","2","","","","","","어니컴 시료 XNP-C6403RW (01-AC)"],
@@ -479,7 +480,14 @@ function render(){
     btn.addEventListener('click',()=>{
       const id=btn.dataset.id;
       const row=rows.find(x=>x._id===id);
-      if(row && confirm(`"${row.device||'이 장비'}" 항목을 삭제할까요?`)){
+      if(!row) return;
+      const pw=prompt(`"${row.device||'이 장비'}" 항목을 삭제하려면 관리자 비밀번호를 입력하세요.`);
+      if(pw===null) return;
+      if(pw!==ADMIN_PASSWORD){
+        alert('비밀번호가 올바르지 않습니다.');
+        return;
+      }
+      if(confirm(`"${row.device||'이 장비'}" 항목을 정말 삭제할까요?`)){
         btn.disabled=true;
         deleteDoc(doc(db,'devices',id)).catch(err=>{
           alert('삭제 실패: '+err.message);
