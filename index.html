@@ -419,7 +419,7 @@ function render(){
         <button class="delbtn" data-id="${r._id}" aria-label="삭제" title="삭제">&times;</button>
       </td>
       <td class="dev">${hl(r.device,q)}</td>
-      <td style="text-align:center;"><input type="checkbox" class="compatchk" data-id="${r._id}" ${r.compat?'checked':''}></td>
+      <td style="text-align:center;"><input type="checkbox" disabled ${r.compat?'checked':''}></td>
       <td>${esc(r.soc)}</td>
       <td>${badge(r.env)}</td>
       <td class="mono">${hl(r.ip,q)}</td>
@@ -464,16 +464,6 @@ function render(){
         alert('수정 실패: '+err.message);
         btn.disabled=false;
       });
-    });
-  });
-  tbody.querySelectorAll('.compatchk').forEach(chk=>{
-    chk.addEventListener('change',()=>{
-      const id=chk.dataset.id;
-      chk.disabled=true;
-      updateDoc(doc(db,'devices',id), {compat:chk.checked}).catch(err=>{
-        alert('호환성 변경 실패: '+err.message);
-        chk.checked=!chk.checked;
-      }).finally(()=>{ chk.disabled=false; });
     });
   });
   tbody.querySelectorAll('.delbtn').forEach(btn=>{
