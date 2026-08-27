@@ -132,6 +132,9 @@
 
   <div class="controls">
     <button class="btn primary" id="addBtn">+ 장비 추가</button>
+    <button class="btn" id="exportBtn">CSV 다운로드</button>
+    <button class="btn" id="importBtn">CSV로 가져오기</button>
+    <input type="file" id="importFile" accept=".csv" style="display:none;">
     <span class="count" style="margin-left:auto;">변경사항은 클라우드에 실시간 저장되며 접속한 모든 사용자에게 공유됩니다.</span>
   </div>
 
@@ -598,6 +601,172 @@ document.getElementById('submitAdd').addEventListener('click',async()=>{
   }
 });
 
+
+function csvEscape(v){
+  const s = (v===undefined || v===null) ? '' : String(v);
+  if(/[",\n\r]/.test(s)) return '"'+s.replace(/"/g,'""')+'"';
+  return s;
+}
+
+const CSV_HEADERS = ["Device","호환성","Platform","환경","IP","Serial","Mac","Account","ORG ID","Short name","비고"];
+const CSV_FIELDS  = ["device","compat","soc","env","ip","serial","mac","account","orgid","sname","comment"];
+
+document.getElementById('exportBtn').addEventListener('click',()=>{
+  const lines=[CSV_HEADERS.map(csvEscape).join(',')];
+  rows.forEach(r=>{
+    const vals=CSV_FIELDS.map(f=> f==='compat' ? (r.compat?'O':'X') : (r[f]||''));
+    lines.push(vals.map(csvEscape).join(','));
+  });
+  const csv='\uFEFF'+lines.join('\r\n');
+  const blob=new Blob([csv],{type:'text/csv;charset=utf-8;'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  a.href=url;
+  const ts=new Date().toISOString().slice(0,10);
+  a.download=`oncloud_device_list_${ts}.csv`;
+  a.click();
+  URL.revokeObjectURL(url);
+});
+
+function parseCSV(text){
+  const rowsOut=[];
+  let row=[], field='', inQuotes=false;
+  text = text.replace(/^\uFEFF/, '');
+  for(let i=0;i<text.length;i++){
+    const c=text[i], next=text[i+1];
+    if(inQuotes){
+      if(c==='"' && next==='"'){ field+='"'; i++; }
+      else if(c==='"'){ inQuotes=false; }
+      else field+=c;
+    }else{
+      if(c==='"') inQuotes=true;
+      else if(c===','){ row.push(field); field=''; }
+      else if(c==='\r'){ /* skip */ }
+      else if(c==='\n'){ row.push(field); rowsOut.push(row); row=[]; field=''; }
+      else field+=c;
+    }
+  }
+  if(field.length>0 || row.length>0){ row.push(field); rowsOut.push(row); }
+  return rowsOut.filter(r=>!(r.length===1 && r[0]===''));
+}
+
+function normHeader(h){ return String(h||'').trim().toLowerCase().replace(/\s+/g,''); }
+const HEADER_ALIASES = {
+  device:['device'],
+  compat:['호환성','compat','compatibility'],
+  soc:['platform','soc'],
+  env:['환경','env'],
+  ip:['ip'],
+  serial:['serial'],
+  mac:['mac'],
+  account:['account'],
+  orgid:['orgid','org id'],
+  sname:['shortname'],
+  comment:['비고','comment']
+};
+function fieldIndexMap(headerRow){
+  const norm=headerRow.map(normHeader);
+  const map={};
+  CSV_FIELDS.forEach(f=>{
+    const aliases=HEADER_ALIASES[f].map(normHeader);
+    const idx=norm.findIndex(h=>aliases.includes(h));
+    map[f]=idx;
+  });
+  return map;
+}
+function parseCompat(v){
+  const s=String(v||'').trim().toLowerCase();
+  return ['o','y','yes','true','1','호환','호환o'].includes(s);
+}
+
+document.getElementById('importBtn').addEventListener('click',()=>{
+  document.getElementById('importFile').click();
+});
+
+document.getElementById('importFile').addEventListener('change',async(e)=>{
+  const file=e.target.files[0];
+  e.target.value='';
+  if(!file) return;
+  try{
+    const text=await file.text();
+    const table=parseCSV(text);
+    if(table.length<2){ alert('가져올 데이터가 없습니다. (헤더 + 최소 1개 행 필요)'); return; }
+    const map=fieldIndexMap(table[0]);
+    if(map.device===-1){ alert("헤더에서 'Device' 컬럼을 찾지 못했습니다. 첫 행이 헤더인지 확인해주세요."); return; }
+
+    const bySerial=new Map();
+    const byDevice=new Map();
+    rows.forEach(r=>{
+      if(r.serial && r.serial.trim()) bySerial.set(r.serial.trim().toLowerCase(), r._id);
+      if(r.device && r.device.trim()) byDevice.set(r.device.trim().toLowerCase(), r._id);
+    });
+
+    const toAdd=[], toUpdate=[];
+    const seenSerial=new Set(), seenDevice=new Set();
+    for(let i=1;i<table.length;i++){
+      const r=table[i];
+      const device=(r[map.device]||'').trim();
+      if(!device) continue;
+      const serial=map.serial>=0 ? (r[map.serial]||'').trim() : '';
+      const data={
+        device,
+        compat: map.compat>=0 ? parseCompat(r[map.compat]) : false,
+        soc: map.soc>=0 ? (r[map.soc]||'').trim() : '',
+        env: map.env>=0 ? (r[map.env]||'').trim() : '',
+        ip: map.ip>=0 ? (r[map.ip]||'').trim() : '',
+        serial,
+        mac: map.mac>=0 ? (r[map.mac]||'').trim() : '',
+        account: map.account>=0 ? (r[map.account]||'').trim() : '',
+        orgid: map.orgid>=0 ? (r[map.orgid]||'').trim() : '',
+        sname: map.sname>=0 ? (r[map.sname]||'').trim() : '',
+        comment: map.comment>=0 ? (r[map.comment]||'').trim() : ''
+      };
+      const serialKey=serial.toLowerCase();
+      const deviceKey=device.toLowerCase();
+      let existingId=null;
+      if(serial && bySerial.has(serialKey)) existingId=bySerial.get(serialKey);
+      else if(!serial && byDevice.has(deviceKey)) existingId=byDevice.get(deviceKey);
+
+      // CSV 파일 내부에서 같은 항목이 반복될 경우, 그 다음부터는 추가로 처리(중복 스킵 방지)
+      const dupKeyInFile = serial ? 'S:'+serialKey : 'D:'+deviceKey;
+      const seenSet = serial ? seenSerial : seenDevice;
+      if(existingId && !seenSet.has(dupKeyInFile)){
+        toUpdate.push({id:existingId, data});
+        seenSet.add(dupKeyInFile);
+      }else{
+        toAdd.push(data);
+      }
+    }
+
+    if(toAdd.length===0 && toUpdate.length===0){ alert('Device 이름이 있는 유효한 행이 없습니다.'); return; }
+    const msg = `총 ${toAdd.length+toUpdate.length}개 행을 처리합니다.\n`
+      + `- 신규 추가: ${toAdd.length}개\n`
+      + `- 기존 항목 업데이트(Serial 또는 Device명 일치): ${toUpdate.length}개\n\n`
+      + `계속할까요?`;
+    if(!confirm(msg)) return;
+
+    const importBtn=document.getElementById('importBtn');
+    importBtn.disabled=true;
+    const ops=[
+      ...toAdd.map(d=>({type:'add', data:d})),
+      ...toUpdate.map(u=>({type:'update', id:u.id, data:u.data}))
+    ];
+    for(let i=0;i<ops.length;i+=450){
+      const chunk=ops.slice(i,i+450);
+      const batch=writeBatch(db);
+      chunk.forEach(op=>{
+        if(op.type==='add'){ batch.set(doc(devicesCol), op.data); }
+        else{ batch.update(doc(db,'devices',op.id), op.data); }
+      });
+      await batch.commit();
+    }
+    alert(`완료: 신규 ${toAdd.length}개 추가, ${toUpdate.length}개 업데이트했습니다.`);
+  }catch(err){
+    alert('가져오기 실패: '+err.message);
+  }finally{
+    document.getElementById('importBtn').disabled=false;
+  }
+});
 
 seedIfEmpty().then(()=>{
   onSnapshot(devicesCol, (snap)=>{
