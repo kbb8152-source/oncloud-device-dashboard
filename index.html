@@ -64,6 +64,10 @@
   .badge.STG{background:var(--stg-bg);color:var(--stg);}
   .badge.Prod{background:var(--prod-bg);color:var(--prod);}
   .badge.none{background:var(--none-bg);color:var(--none);}
+  .compat-badge{display:inline-flex;align-items:center;justify-content:center;width:20px;height:20px;
+    border-radius:6px;font-size:13px;font-weight:700;line-height:1;}
+  .compat-badge.yes{background:var(--qa-bg);color:var(--qa);}
+  .compat-badge.no{background:var(--none-bg);color:var(--text-3);}
   .empty{padding:40px;text-align:center;color:var(--text-3);font-size:13px;}
   .hl{background:#FDE68A;border-radius:2px;}
   ::-webkit-scrollbar{height:10px;width:10px;}
@@ -385,6 +389,10 @@ function badge(env){
   if(!env) return '<span class="badge none">미배정</span>';
   return `<span class="badge ${env}">${env}</span>`;
 }
+function compatBadge(v){
+  return v ? '<span class="compat-badge yes" title="호환 O">&#10003;</span>'
+           : '<span class="compat-badge no" title="호환 X">&#8212;</span>';
+}
 
 function render(){
   const q=searchEl.value.trim();
@@ -419,7 +427,7 @@ function render(){
         <button class="delbtn" data-id="${r._id}" aria-label="삭제" title="삭제">&times;</button>
       </td>
       <td class="dev">${hl(r.device,q)}</td>
-      <td style="text-align:center;"><input type="checkbox" disabled ${r.compat?'checked':''}></td>
+      <td style="text-align:center;">${compatBadge(r.compat)}</td>
       <td>${esc(r.soc)}</td>
       <td>${badge(r.env)}</td>
       <td class="mono">${hl(r.ip,q)}</td>
