@@ -2,7 +2,7 @@
 <html lang="ko">
 <head>
 <meta charset="UTF-8">
-<title>Oncloud 사용 장비</title>
+<title>OnCloud 사용 장비</title>
 <style>
   :root{
     --bg:#F7F6F2; --surface:#FFFFFF; --line:#E4E1D8; --line-strong:#CFCBBC;
@@ -113,15 +113,15 @@
 </head>
 <body>
 <div class="wrap">
-  <h1>Oncloud 사용 장비</h1>
+  <h1 id="mainTitle">OnCloud 사용 장비</h1>
   <p class="sub" id="subLine">Cloud 과제 Device 정보 &middot; 검색 / 필터 / 정렬 가능</p>
 
   <div class="tabs">
-    <button class="tab-btn active" data-list="devices">장비 리스트 1</button>
-    <button class="tab-btn" data-list="devices2">장비 리스트 2</button>
-    <button class="tab-btn" data-list="devices3">장비 리스트 3</button>
-    <button class="tab-btn" data-list="devices4">장비 리스트 4</button>
-    <button class="tab-btn" data-list="devices5">장비 리스트 5</button>
+    <button class="tab-btn active" data-list="devices">OnCloud</button>
+    <button class="tab-btn" data-list="devices2">HealthPro</button>
+    <button class="tab-btn" data-list="devices3">SightMind</button>
+    <button class="tab-btn" data-list="devices4">Portal</button>
+    <button class="tab-btn" data-list="devices5">OnCAFE</button>
   </div>
 
   <div class="stats" id="stats"></div>
@@ -392,7 +392,7 @@ function renderStats(){
     <div class="stat prod"><div class="n">${c.Prod}</div><div class="l">Prod</div></div>
     <div class="stat none"><div class="n">${c.NONE}</div><div class="l">환경 미배정</div></div>
   `;
-  document.getElementById('subLine').textContent = `Cloud 과제 Device 정보 · 총 ${rows.length}개 장비 · 검색 / 필터 / 정렬 가능`;
+  document.getElementById('subLine').textContent = `${LIST_NAMES[listKey]||listKey} 과제 Device 정보 · 총 ${rows.length}개 장비 · 검색 / 필터 / 정렬 가능`;
 }
 
 function esc(s){return s.replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));}
@@ -784,6 +784,7 @@ document.getElementById('importFile').addEventListener('change',async(e)=>{
 });
 
 let unsubscribeFn=null;
+const LIST_NAMES = { devices:'OnCloud', devices2:'HealthPro', devices3:'SightMind', devices4:'Portal', devices5:'OnCAFE' };
 
 function subscribeList(colName){
   if(unsubscribeFn){ unsubscribeFn(); unsubscribeFn=null; }
@@ -791,6 +792,7 @@ function subscribeList(colName){
   devicesCol = collection(db, colName);
   editingId = null;
   rows = [];
+  document.getElementById('mainTitle').textContent = (LIST_NAMES[colName]||colName) + ' 사용 장비';
   populateSocOptions();
   renderStats();
   tbody.innerHTML='';
