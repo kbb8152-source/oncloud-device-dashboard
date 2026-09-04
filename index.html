@@ -126,7 +126,6 @@
     <button class="tab-btn" data-list="devices4" data-mode="device">Portal</button>
     <button class="tab-btn" data-list="devices5" data-mode="device">OnCAFE</button>
     <button class="tab-btn" data-list="devicesCGR" data-mode="cgr">CGR</button>
-    <button class="tab-btn" data-list="devicesRental" data-mode="rental">대여현황</button>
   </div>
 
   <div class="stats" id="stats"></div>
@@ -194,16 +193,6 @@
       <div class="form-field" data-mode="device" style="grid-column:1/-1;"><label>비고</label><input id="f_comment"></div>
       <div class="form-field" data-mode="cgr"><label>인증서 여부</label><textarea id="f_cert" rows="2" placeholder="예: 인증서 넣은 장비&#10;26/08/11"></textarea></div>
       <div class="form-field" data-mode="cgr" style="grid-column:1/-1;"><label>Serial number &amp; MAC</label><textarea id="f_snmac" rows="3" placeholder="한 줄에 하나씩 입력"></textarea></div>
-      <div class="form-field" data-mode="rental"><label>Manufacturer</label><input id="f_manufacturer" placeholder="예: Axis"></div>
-      <div class="form-field" data-mode="rental"><label>원소유자</label><input id="f_owner"></div>
-      <div class="form-field" data-mode="rental"><label>현관리자</label><input id="f_manager"></div>
-      <div class="form-field" data-mode="rental"><label>관리시작일</label><input id="f_startdate" placeholder="2026-01-06"></div>
-      <div class="form-field" data-mode="rental"><label>현재 대여자</label><input id="f_renter"></div>
-      <div class="form-field" data-mode="rental"><label>대여일</label><input id="f_rentdate" placeholder="2026-06-25"></div>
-      <div class="form-field" data-mode="rental"><label>대여 완료 여부</label>
-        <label style="display:flex;align-items:center;height:34px;"><input type="checkbox" id="f_done" style="width:16px;height:16px;margin:0;"></label>
-      </div>
-      <div class="form-field" data-mode="rental" style="grid-column:1/-1;"><label>비고</label><textarea id="f_note" rows="2"></textarea></div>
     </div>
     <div class="form-actions">
       <button class="btn" id="cancelAdd">취소</button>
@@ -461,10 +450,8 @@ function render(){
   const soc=socSel.value;
   const compatF=compatSel.value;
   let filtered=rows.filter(r=>{
-    if(mode!=='rental'){
-      if(envFilter==='NONE' && r.env!=='') return false;
-      if(envFilter!=='ALL' && envFilter!=='NONE' && r.env!==envFilter) return false;
-    }
+    if(envFilter==='NONE' && r.env!=='') return false;
+    if(envFilter!=='ALL' && envFilter!=='NONE' && r.env!==envFilter) return false;
     if(mode==='device'){
       if(soc!=='ALL' && r.soc!==soc) return false;
       if(compatF==='Y' && !r.compat) return false;
@@ -473,8 +460,6 @@ function render(){
     if(q){
       const hay = mode==='cgr'
         ? [r.ip,r.device,r.version,r.location,r.cert,r.snmac].join(' ').toLowerCase()
-        : mode==='rental'
-        ? [r.manufacturer,r.device,r.owner,r.manager,r.renter,r.note].join(' ').toLowerCase()
         : [r.device,r.soc,r.ip,r.serial,r.mac,r.account,r.orgid,r.sname,r.comment].join(' ').toLowerCase();
       if(!hay.includes(qLower)) return false;
     }
@@ -503,25 +488,6 @@ function render(){
       <td>${hl(r.location||'',q)}</td>
       <td style="white-space:pre-line;">${hl(r.cert||'',q)}</td>
       <td class="mono" style="white-space:pre-line;">${hl(r.snmac||'',q)}</td>
-    </tr>
-  `;
-    }
-    if(mode==='rental'){
-      return `
-    <tr>
-      <td class="delcol">
-        <button class="editbtn" data-id="${r._id}" aria-label="수정" title="수정">&#9998;</button>
-        <button class="delbtn" data-id="${r._id}" aria-label="삭제" title="삭제">&times;</button>
-      </td>
-      <td>${hl(r.manufacturer||'',q)}</td>
-      <td class="dev">${hl(r.device||'',q)}</td>
-      <td>${hl(r.owner||'',q)}</td>
-      <td>${hl(r.manager||'',q)}</td>
-      <td class="mono">${esc(r.startdate||'')}</td>
-      <td>${hl(r.renter||'',q)}</td>
-      <td class="mono">${esc(r.rentdate||'')}</td>
-      <td style="white-space:pre-line;">${hl(r.note||'',q)}</td>
-      <td style="text-align:center;">${compatBadge(r.done)}</td>
     </tr>
   `;
     }
@@ -567,12 +533,6 @@ function render(){
         updated={
           ip:get('ip'), device:get('device'), version:get('version'), env:get('env'),
           location:get('location'), cert:get('cert'), snmac:get('snmac')
-        };
-      }else if(mode==='rental'){
-        updated={
-          manufacturer:get('manufacturer'), device:get('device'), owner:get('owner'), manager:get('manager'),
-          startdate:get('startdate'), renter:get('renter'), rentdate:get('rentdate'), note:get('note'),
-          done:tr.querySelector('[name="done"]').checked
         };
       }else{
         updated={
@@ -647,25 +607,6 @@ function editRowHtml(r){
     </tr>
   `;
   }
-  if(mode==='rental'){
-    return `
-    <tr class="editing">
-      <td class="delcol">
-        <button class="savebtn" data-id="${r._id}" title="저장">저장</button>
-        <button class="cancelbtn" title="취소">취소</button>
-      </td>
-      <td><input class="editin" name="manufacturer" value="${esc(r.manufacturer||'')}"></td>
-      <td><input class="editin" name="device" value="${esc(r.device||'')}"></td>
-      <td><input class="editin" name="owner" value="${esc(r.owner||'')}"></td>
-      <td><input class="editin" name="manager" value="${esc(r.manager||'')}"></td>
-      <td><input class="editin" name="startdate" value="${esc(r.startdate||'')}"></td>
-      <td><input class="editin" name="renter" value="${esc(r.renter||'')}"></td>
-      <td><input class="editin" name="rentdate" value="${esc(r.rentdate||'')}"></td>
-      <td><textarea class="editin" name="note" rows="2">${esc(r.note||'')}</textarea></td>
-      <td style="text-align:center;"><input type="checkbox" name="done" ${r.done?'checked':''}></td>
-    </tr>
-  `;
-  }
   return `
     <tr class="editing">
       <td class="delcol">
@@ -727,18 +668,6 @@ document.getElementById('submitAdd').addEventListener('click',async()=>{
       cert:document.getElementById('f_cert').value.trim(),
       snmac:document.getElementById('f_snmac').value.trim()
     };
-  }else if(mode==='rental'){
-    newRow={
-      manufacturer:document.getElementById('f_manufacturer').value.trim(),
-      device,
-      owner:document.getElementById('f_owner').value.trim(),
-      manager:document.getElementById('f_manager').value.trim(),
-      startdate:document.getElementById('f_startdate').value.trim(),
-      renter:document.getElementById('f_renter').value.trim(),
-      rentdate:document.getElementById('f_rentdate').value.trim(),
-      note:document.getElementById('f_note').value.trim(),
-      done:document.getElementById('f_done').checked
-    };
   }else{
     newRow={
       device,
@@ -760,9 +689,6 @@ document.getElementById('submitAdd').addEventListener('click',async()=>{
     await addDoc(devicesCol, newRow);
     if(mode==='cgr'){
       ['f_device','f_ip','f_version','f_location','f_cert','f_snmac'].forEach(id=>document.getElementById(id).value='');
-    }else if(mode==='rental'){
-      ['f_device','f_manufacturer','f_owner','f_manager','f_startdate','f_renter','f_rentdate','f_note'].forEach(id=>document.getElementById(id).value='');
-      document.getElementById('f_done').checked=false;
     }else{
       ['f_device','f_soc','f_ip','f_serial','f_mac','f_account','f_orgid','f_sname','f_comment'].forEach(id=>document.getElementById(id).value='');
       document.getElementById('f_compat').checked=false;
@@ -787,10 +713,8 @@ const CSV_HEADERS_DEVICE = ["Device","호환성","Platform","환경","IP","Seria
 const CSV_FIELDS_DEVICE  = ["device","compat","soc","env","ip","serial","mac","account","orgid","sname","comment"];
 const CSV_HEADERS_CGR = ["IP","장비","버전","상태","위치","인증서 여부","Serial number & MAC"];
 const CSV_FIELDS_CGR  = ["ip","device","version","env","location","cert","snmac"];
-const CSV_HEADERS_RENTAL = ["Manufacturer","Model","원소유자","현관리자","관리시작일","현재 대여자","대여일","비고","대여 완료 여부"];
-const CSV_FIELDS_RENTAL  = ["manufacturer","device","owner","manager","startdate","renter","rentdate","note","done"];
-function currentCsvHeaders(){ return mode==='cgr' ? CSV_HEADERS_CGR : mode==='rental' ? CSV_HEADERS_RENTAL : CSV_HEADERS_DEVICE; }
-function currentCsvFields(){ return mode==='cgr' ? CSV_FIELDS_CGR : mode==='rental' ? CSV_FIELDS_RENTAL : CSV_FIELDS_DEVICE; }
+function currentCsvHeaders(){ return mode==='cgr' ? CSV_HEADERS_CGR : CSV_HEADERS_DEVICE; }
+function currentCsvFields(){ return mode==='cgr' ? CSV_FIELDS_CGR : CSV_FIELDS_DEVICE; }
 
 document.getElementById('exportBtn').addEventListener('click',()=>{
   const headers=currentCsvHeaders(), fields=currentCsvFields();
@@ -855,20 +779,9 @@ const HEADER_ALIASES_CGR = {
   cert:['인증서여부','인증서','cert'],
   snmac:['serialnumber&mac','snmac','serial']
 };
-const HEADER_ALIASES_RENTAL = {
-  manufacturer:['manufacturer'],
-  device:['model','device'],
-  owner:['원소유자','owner'],
-  manager:['현관리자','manager'],
-  startdate:['관리시작일','startdate'],
-  renter:['현재대여자','renter'],
-  rentdate:['대여일','rentdate'],
-  note:['비고','note'],
-  done:['대여완료여부','대여완료','done']
-};
 function fieldIndexMap(headerRow){
   const norm=headerRow.map(normHeader);
-  const aliasSet = mode==='cgr' ? HEADER_ALIASES_CGR : mode==='rental' ? HEADER_ALIASES_RENTAL : HEADER_ALIASES;
+  const aliasSet = mode==='cgr' ? HEADER_ALIASES_CGR : HEADER_ALIASES;
   const fields = currentCsvFields();
   const map={};
   fields.forEach(f=>{
@@ -1001,7 +914,7 @@ document.getElementById('importFile').addEventListener('change',async(e)=>{
 });
 
 let unsubscribeFn=null;
-const LIST_NAMES = { devices:'OnCloud', devices2:'HealthPro', devices3:'SightMind', devices4:'Portal', devices5:'OnCAFE', devicesCGR:'CGR', devicesRental:'대여현황' };
+const LIST_NAMES = { devices:'OnCloud', devices2:'HealthPro', devices3:'SightMind', devices4:'Portal', devices5:'OnCAFE', devicesCGR:'CGR' };
 
 const THEAD_DEVICE = `
   <th class="delcol"></th>
@@ -1027,21 +940,9 @@ const THEAD_CGR = `
   <th data-k="cert">인증서 여부<span class="arrow"></span></th>
   <th data-k="snmac">Serial number &amp; MAC<span class="arrow"></span></th>
 `;
-const THEAD_RENTAL = `
-  <th class="delcol"></th>
-  <th data-k="manufacturer">Manufacturer<span class="arrow"></span></th>
-  <th data-k="device">Model<span class="arrow"></span></th>
-  <th data-k="owner">원소유자<span class="arrow"></span></th>
-  <th data-k="manager">현관리자<span class="arrow"></span></th>
-  <th data-k="startdate">관리시작일<span class="arrow"></span></th>
-  <th data-k="renter">현재 대여자<span class="arrow"></span></th>
-  <th data-k="rentdate">대여일<span class="arrow"></span></th>
-  <th data-k="note">비고<span class="arrow"></span></th>
-  <th style="text-align:center;">대여 완료 여부</th>
-`;
 
 function applyModeUI(m){
-  document.getElementById('theadRow').innerHTML = m==='cgr' ? THEAD_CGR : m==='rental' ? THEAD_RENTAL : THEAD_DEVICE;
+  document.getElementById('theadRow').innerHTML = m==='cgr' ? THEAD_CGR : THEAD_DEVICE;
   document.querySelectorAll('thead th[data-k]').forEach(th=>{
     th.addEventListener('click',()=>{
       const k=th.dataset.k;
@@ -1052,28 +953,25 @@ function applyModeUI(m){
     });
   });
   document.getElementById('deviceOnlyFilters').style.display = m==='device' ? '' : 'none';
-  document.getElementById('envChips').style.display = m==='rental' ? 'none' : '';
   document.querySelectorAll('#addForm [data-mode]').forEach(el=>{
     const modes=el.dataset.mode.split(' ');
     el.style.display = (modes.includes('common') || modes.includes(m)) ? '' : 'none';
   });
-  document.getElementById('lbl_device').textContent = m==='cgr' ? '장비 *' : m==='rental' ? 'Model *' : 'Device *';
+  document.getElementById('lbl_device').textContent = m==='cgr' ? '장비 *' : 'Device *';
   document.getElementById('lbl_env').textContent = m==='cgr' ? '상태' : '환경';
-  document.getElementById('formTitle').textContent = m==='cgr' ? '새 CGR 장비 추가' : m==='rental' ? '새 대여 항목 추가' : '새 장비 추가';
-  document.getElementById('formErr').textContent = m==='cgr' ? '장비 이름은 필수입니다.' : m==='rental' ? 'Model은 필수입니다.' : 'Device 이름은 필수입니다.';
+  document.getElementById('formTitle').textContent = m==='cgr' ? '새 CGR 장비 추가' : '새 장비 추가';
+  document.getElementById('formErr').textContent = m==='cgr' ? '장비 이름은 필수입니다.' : 'Device 이름은 필수입니다.';
   searchEl.placeholder = m==='cgr'
     ? 'IP, 장비, 버전, 위치, 인증서 여부, Serial/MAC 검색...'
-    : m==='rental'
-    ? 'Manufacturer, Model, 원소유자, 현관리자, 현재 대여자, 비고 검색...'
     : 'Device, IP, Serial, Mac, Account, ORG ID, Short name, 비고 검색...';
-  sortKey = m==='rental' ? 'manufacturer' : 'device';
+  sortKey='device';
   sortDir=1;
 }
 
 function subscribeList(colName){
   if(unsubscribeFn){ unsubscribeFn(); unsubscribeFn=null; }
   listKey = colName;
-  mode = colName==='devicesCGR' ? 'cgr' : colName==='devicesRental' ? 'rental' : 'device';
+  mode = colName==='devicesCGR' ? 'cgr' : 'device';
   devicesCol = collection(db, colName);
   editingId = null;
   rows = [];
