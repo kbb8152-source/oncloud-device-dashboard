@@ -703,9 +703,10 @@ document.getElementById('submitAdd').addEventListener('click',async()=>{
 });
 
 
-function csvEscape(v){
+function csvEscape(v, delim){
   const s = (v===undefined || v===null) ? '' : String(v);
-  if(/[",\n\r]/.test(s)) return '"'+s.replace(/"/g,'""')+'"';
+  const re = delim==='\t' ? /["\t\n\r]/ : /[",\n\r]/;
+  if(re.test(s)) return '"'+s.replace(/"/g,'""')+'"';
   return s;
 }
 
@@ -718,13 +719,17 @@ function currentCsvFields(){ return mode==='cgr' ? CSV_FIELDS_CGR : CSV_FIELDS_D
 
 document.getElementById('exportBtn').addEventListener('click',()=>{
   const headers=currentCsvHeaders(), fields=currentCsvFields();
-  const lines=[headers.map(csvEscape).join(',')];
+  const lines=[headers.map(h=>csvEscape(h,'\t')).join('\t')];
   rows.forEach(r=>{
     const vals=fields.map(f=> (f==='compat'||f==='done') ? (r[f]?'O':'X') : (r[f]||''));
-    lines.push(vals.map(csvEscape).join(','));
+    lines.push(vals.map(v=>csvEscape(v,'\t')).join('\t'));
   });
-  const csv='\uFEFF'+'sep=,\r\n'+lines.join('\r\n');
-  const blob=new Blob([csv],{type:'text/csv;charset=utf-8;'});
+  const text = '\uFEFF'+lines.join('\r\n');
+  // 엑셀이 지역설정과 무관하게 항상 정확히 읽도록 UTF-16LE로 인코딩
+  const buf = new ArrayBuffer(text.length*2);
+  const view = new Uint16Array(buf);
+  for(let i=0;i<text.length;i++) view[i]=text.charCodeAt(i);
+  const blob=new Blob([buf],{type:'text/csv;charset=utf-16le;'});
   const url=URL.createObjectURL(blob);
   const a=document.createElement('a');
   a.href=url;
@@ -734,7 +739,8 @@ document.getElementById('exportBtn').addEventListener('click',()=>{
   URL.revokeObjectURL(url);
 });
 
-function parseCSV(text){
+function parseCSV(text, delim){
+  delim = delim || ',';
   const rowsOut=[];
   let row=[], field='', inQuotes=false;
   text = text.replace(/^\uFEFF/, '');
@@ -746,7 +752,7 @@ function parseCSV(text){
       else field+=c;
     }else{
       if(c==='"') inQuotes=true;
-      else if(c===','){ row.push(field); field=''; }
+      else if(c===delim){ row.push(field); field=''; }
       else if(c==='\r'){ /* skip */ }
       else if(c==='\n'){ row.push(field); rowsOut.push(row); row=[]; field=''; }
       else field+=c;
@@ -805,8 +811,15 @@ document.getElementById('importFile').addEventListener('change',async(e)=>{
   e.target.value='';
   if(!file) return;
   try{
-    const text=await file.text();
-    let table=parseCSV(text);
+    const buf = await file.arrayBuffer();
+    const bytes = new Uint8Array(buf);
+    let encoding = 'utf-8';
+    if(bytes[0]===0xFF && bytes[1]===0xFE) encoding='utf-16le';
+    else if(bytes[0]===0xFE && bytes[1]===0xFF) encoding='utf-16be';
+    const text = new TextDecoder(encoding).decode(buf);
+    const firstLine = text.split(/\r\n|\n/,1)[0] || '';
+    const delim = (firstLine.split('\t').length > firstLine.split(',').length) ? '\t' : ',';
+    let table=parseCSV(text, delim);
     if(table.length && table[0].length===1 && /^sep=.$/i.test((table[0][0]||'').trim())){
       table = table.slice(1);
     }
