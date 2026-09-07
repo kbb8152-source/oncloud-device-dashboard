@@ -194,7 +194,7 @@
       <div class="form-field" data-mode="device oncafe"><label>Account</label><input id="f_account"></div>
       <div class="form-field" data-mode="device oncafe"><label>ORG ID</label><input id="f_orgid"></div>
       <div class="form-field" data-mode="device oncafe"><label>Short name</label><input id="f_sname"></div>
-      <div class="form-field" data-mode="device" style="grid-column:1/-1;"><label>비고</label><input id="f_comment"></div>
+      <div class="form-field" data-mode="device oncafe" style="grid-column:1/-1;"><label>비고</label><input id="f_comment"></div>
       <div class="form-field" data-mode="cgr"><label>인증서 여부</label><textarea id="f_cert" rows="2" placeholder="예: 인증서 넣은 장비&#10;26/08/11"></textarea></div>
       <div class="form-field" data-mode="cgr" style="grid-column:1/-1;"><label>Serial number &amp; MAC</label><textarea id="f_snmac" rows="3" placeholder="한 줄에 하나씩 입력"></textarea></div>
     </div>
@@ -467,7 +467,7 @@ function render(){
       const hay = mode==='cgr'
         ? [r.ip,r.device,r.version,r.location,r.cert,r.snmac].join(' ').toLowerCase()
         : mode==='oncafe'
-        ? [r.device,r.soc,r.switch,r.ip,r.serial,r.mac,r.slot,r.account,r.orgid,r.sname].join(' ').toLowerCase()
+        ? [r.device,r.soc,r.switch,r.ip,r.serial,r.mac,r.slot,r.account,r.orgid,r.sname,r.comment].join(' ').toLowerCase()
         : [r.device,r.soc,r.ip,r.serial,r.mac,r.account,r.orgid,r.sname,r.comment].join(' ').toLowerCase();
       if(!hay.includes(qLower)) return false;
     }
@@ -517,6 +517,7 @@ function render(){
       <td class="acct">${hl(r.account||'',q)}</td>
       <td>${hl(r.orgid||'',q)}</td>
       <td>${hl(r.sname||'',q)}</td>
+      <td class="cmt">${hl(r.comment||'',q)}</td>
     </tr>
   `;
     }
@@ -567,7 +568,7 @@ function render(){
         updated={
           device:get('device'), soc:get('soc'), switch:get('switch'), ip:get('ip'),
           serial:get('serial'), mac:get('mac'), env:get('env'), slot:get('slot'),
-          account:get('account'), orgid:get('orgid'), sname:get('sname')
+          account:get('account'), orgid:get('orgid'), sname:get('sname'), comment:get('comment')
         };
       }else{
         updated={
@@ -660,6 +661,7 @@ function editRowHtml(r){
       <td><input class="editin" name="account" value="${esc(r.account||'')}"></td>
       <td><input class="editin" name="orgid" value="${esc(r.orgid||'')}"></td>
       <td><input class="editin" name="sname" value="${esc(r.sname||'')}"></td>
+      <td><input class="editin" name="comment" value="${esc(r.comment||'')}"></td>
     </tr>
   `;
   }
@@ -736,7 +738,8 @@ document.getElementById('submitAdd').addEventListener('click',async()=>{
       slot:document.getElementById('f_slot').value.trim(),
       account:document.getElementById('f_account').value.trim(),
       orgid:document.getElementById('f_orgid').value.trim(),
-      sname:document.getElementById('f_sname').value.trim()
+      sname:document.getElementById('f_sname').value.trim(),
+      comment:document.getElementById('f_comment').value.trim()
     };
   }else{
     newRow={
@@ -760,7 +763,7 @@ document.getElementById('submitAdd').addEventListener('click',async()=>{
     if(mode==='cgr'){
       ['f_device','f_ip','f_version','f_location','f_cert','f_snmac'].forEach(id=>document.getElementById(id).value='');
     }else if(mode==='oncafe'){
-      ['f_device','f_soc','f_switch','f_ip','f_serial','f_mac','f_slot','f_account','f_orgid','f_sname'].forEach(id=>document.getElementById(id).value='');
+      ['f_device','f_soc','f_switch','f_ip','f_serial','f_mac','f_slot','f_account','f_orgid','f_sname','f_comment'].forEach(id=>document.getElementById(id).value='');
     }else{
       ['f_device','f_soc','f_ip','f_serial','f_mac','f_account','f_orgid','f_sname','f_comment'].forEach(id=>document.getElementById(id).value='');
       document.getElementById('f_compat').checked=false;
@@ -786,8 +789,8 @@ const CSV_HEADERS_DEVICE = ["Device","호환성","Platform","환경","IP","Seria
 const CSV_FIELDS_DEVICE  = ["device","compat","soc","env","ip","serial","mac","account","orgid","sname","comment"];
 const CSV_HEADERS_CGR = ["IP","장비","버전","상태","위치","인증서 여부","Serial number & MAC"];
 const CSV_FIELDS_CGR  = ["ip","device","version","env","location","cert","snmac"];
-const CSV_HEADERS_ONCAFE = ["Device","Platform","Switch","IP","Serial","Mac","환경","Slot","Account","ORG ID","Short name"];
-const CSV_FIELDS_ONCAFE  = ["device","soc","switch","ip","serial","mac","env","slot","account","orgid","sname"];
+const CSV_HEADERS_ONCAFE = ["Device","Platform","Switch","IP","Serial","Mac","환경","Slot","Account","ORG ID","Short name","비고"];
+const CSV_FIELDS_ONCAFE  = ["device","soc","switch","ip","serial","mac","env","slot","account","orgid","sname","comment"];
 function currentCsvHeaders(){ return mode==='cgr' ? CSV_HEADERS_CGR : mode==='oncafe' ? CSV_HEADERS_ONCAFE : CSV_HEADERS_DEVICE; }
 function currentCsvFields(){ return mode==='cgr' ? CSV_FIELDS_CGR : mode==='oncafe' ? CSV_FIELDS_ONCAFE : CSV_FIELDS_DEVICE; }
 
@@ -870,7 +873,8 @@ const HEADER_ALIASES_ONCAFE = {
   slot:['slot'],
   account:['account'],
   orgid:['orgid','org id'],
-  sname:['shortname']
+  sname:['shortname'],
+  comment:['비고','comment']
 };
 function fieldIndexMap(headerRow){
   const norm=headerRow.map(normHeader);
@@ -969,7 +973,8 @@ document.getElementById('importFile').addEventListener('change',async(e)=>{
           slot: map.slot>=0 ? (r[map.slot]||'').trim() : '',
           account: map.account>=0 ? (r[map.account]||'').trim() : '',
           orgid: map.orgid>=0 ? (r[map.orgid]||'').trim() : '',
-          sname: map.sname>=0 ? (r[map.sname]||'').trim() : ''
+          sname: map.sname>=0 ? (r[map.sname]||'').trim() : '',
+          comment: map.comment>=0 ? (r[map.comment]||'').trim() : ''
         };
         const serialKey=serial.toLowerCase();
         const deviceKey=device.toLowerCase();
@@ -1089,6 +1094,7 @@ const THEAD_ONCAFE = `
   <th data-k="account">Account<span class="arrow"></span></th>
   <th data-k="orgid">ORG ID<span class="arrow"></span></th>
   <th data-k="sname">Short name<span class="arrow"></span></th>
+  <th data-k="comment">비고<span class="arrow"></span></th>
 `;
 
 function applyModeUI(m){
