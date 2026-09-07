@@ -839,7 +839,7 @@ function parseCSV(text, delim){
   return rowsOut.filter(r=>!(r.length===1 && r[0]===''));
 }
 
-function normHeader(h){ return String(h||'').trim().toLowerCase().replace(/\s+/g,''); }
+function normHeader(h){ return String(h||'').replace(/\uFEFF/g,'').trim().toLowerCase().replace(/\s+/g,''); }
 const HEADER_ALIASES = {
   device:['device'],
   compat:['호환성','compat','compatibility'],
@@ -916,7 +916,11 @@ document.getElementById('importFile').addEventListener('change',async(e)=>{
     }
     if(table.length<2){ alert('가져올 데이터가 없습니다. (헤더 + 최소 1개 행 필요)'); return; }
     const map=fieldIndexMap(table[0]);
-    if(map.device===-1){ alert("헤더에서 'Device' 또는 '장비' 컬럼을 찾지 못했습니다. 첫 행이 헤더인지 확인해주세요."); return; }
+    if(map.device===-1){
+      const foundHeaders = table[0].map(h=>h===''?'(빈칸)':h).join(' | ');
+      alert("헤더에서 'Device' 또는 '장비' 컬럼을 찾지 못했습니다. 첫 행이 헤더인지 확인해주세요.\n\n[인식된 첫 행]\n"+foundHeaders);
+      return;
+    }
 
     const toAdd=[], toUpdate=[];
 
