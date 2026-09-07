@@ -904,10 +904,20 @@ document.getElementById('importFile').addEventListener('change',async(e)=>{
   try{
     const buf = await file.arrayBuffer();
     const bytes = new Uint8Array(buf);
-    let encoding = 'utf-8';
-    if(bytes[0]===0xFF && bytes[1]===0xFE) encoding='utf-16le';
-    else if(bytes[0]===0xFE && bytes[1]===0xFF) encoding='utf-16be';
-    const text = new TextDecoder(encoding).decode(buf);
+    let text;
+    if(bytes[0]===0xFF && bytes[1]===0xFE){
+      text = new TextDecoder('utf-16le').decode(buf);
+    }else if(bytes[0]===0xFE && bytes[1]===0xFF){
+      text = new TextDecoder('utf-16be').decode(buf);
+    }else{
+      try{
+        // BOM이 없으면 우선 UTF-8로 엄격하게 시도
+        text = new TextDecoder('utf-8', {fatal:true}).decode(buf);
+      }catch(e){
+        // UTF-8이 아니면 엑셀이 자주 쓰는 한글 인코딩(CP949/EUC-KR)로 재시도
+        text = new TextDecoder('euc-kr').decode(buf);
+      }
+    }
     const firstLine = text.split(/\r\n|\n/,1)[0] || '';
     const delim = (firstLine.split('\t').length > firstLine.split(',').length) ? '\t' : ',';
     let table=parseCSV(text, delim);
