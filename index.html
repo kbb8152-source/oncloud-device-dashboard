@@ -121,7 +121,7 @@
 
   <div class="tabs">
     <button class="tab-btn active" data-list="devices" data-mode="device">OnCloud</button>
-    <button class="tab-btn" data-list="devices2" data-mode="device">HealthPro</button>
+    <button class="tab-btn" data-list="devices2" data-mode="healthpro">HealthPro</button>
     <button class="tab-btn" data-list="devices3" data-mode="device">SightMind</button>
     <button class="tab-btn" data-list="devices4" data-mode="device">Portal</button>
     <button class="tab-btn" data-list="devices5" data-mode="device">OnCAFE</button>
@@ -168,7 +168,8 @@
       <div class="form-field" data-mode="device"><label>호환성</label>
         <label style="display:flex;align-items:center;height:34px;"><input type="checkbox" id="f_compat" style="width:16px;height:16px;margin:0;"></label>
       </div>
-      <div class="form-field" data-mode="device oncafe"><label>Platform</label>
+      <div class="form-field" data-mode="healthpro"><label>Resolution</label><input id="f_resolution"></div>
+      <div class="form-field" data-mode="device oncafe healthpro"><label>Platform</label>
         <select id="f_soc">
           <option value="">미지정</option>
           <option value="WN7">WN7</option>
@@ -183,18 +184,20 @@
       </div>
       <div class="form-field" data-mode="oncafe"><label>Switch</label><input id="f_switch"></div>
       <div class="form-field" data-mode="cgr"><label>버전</label><input id="f_version" placeholder="예: 1.3.15"></div>
-      <div class="form-field" data-mode="device cgr oncafe"><label id="lbl_env">환경</label>
+      <div class="form-field" data-mode="device cgr oncafe healthpro"><label id="lbl_env">환경</label>
         <select id="f_env"><option value="">미배정</option><option value="QA">QA</option><option value="STG">STG</option><option value="Prod">Prod</option></select>
       </div>
-      <div class="form-field" data-mode="device cgr oncafe"><label>IP</label><input id="f_ip" placeholder="172.30.1.x"></div>
+      <div class="form-field" data-mode="device cgr oncafe healthpro"><label>IP</label><input id="f_ip" placeholder="172.30.1.x"></div>
       <div class="form-field" data-mode="cgr"><label>위치</label><input id="f_location" placeholder="예: 해진님 자리"></div>
-      <div class="form-field" data-mode="oncafe"><label>Slot</label><input id="f_slot"></div>
-      <div class="form-field" data-mode="device oncafe"><label>Serial</label><input id="f_serial"></div>
-      <div class="form-field" data-mode="device oncafe"><label>Mac</label><input id="f_mac"></div>
-      <div class="form-field" data-mode="device oncafe"><label>Account</label><input id="f_account"></div>
-      <div class="form-field" data-mode="device oncafe"><label>ORG ID</label><input id="f_orgid"></div>
-      <div class="form-field" data-mode="device oncafe"><label>Short name</label><input id="f_sname"></div>
-      <div class="form-field" data-mode="device oncafe" style="grid-column:1/-1;"><label>비고</label><input id="f_comment"></div>
+      <div class="form-field" data-mode="oncafe healthpro"><label>Slot</label><input id="f_slot"></div>
+      <div class="form-field" data-mode="healthpro"><label>Power Mode</label><input id="f_powermode"></div>
+      <div class="form-field" data-mode="device oncafe healthpro"><label>Serial</label><input id="f_serial"></div>
+      <div class="form-field" data-mode="device oncafe healthpro"><label>Mac</label><input id="f_mac"></div>
+      <div class="form-field" data-mode="device oncafe healthpro"><label>Account</label><input id="f_account"></div>
+      <div class="form-field" data-mode="device oncafe healthpro"><label>ORG ID</label><input id="f_orgid"></div>
+      <div class="form-field" data-mode="device oncafe healthpro"><label>Short name</label><input id="f_sname"></div>
+      <div class="form-field" data-mode="device oncafe healthpro" style="grid-column:1/-1;"><label>비고</label><input id="f_comment"></div>
+      <div class="form-field" data-mode="healthpro" style="grid-column:1/-1;"><label>Etc</label><input id="f_etc"></div>
       <div class="form-field" data-mode="cgr"><label>인증서 여부</label><textarea id="f_cert" rows="2" placeholder="예: 인증서 넣은 장비&#10;26/08/11"></textarea></div>
       <div class="form-field" data-mode="cgr" style="grid-column:1/-1;"><label>Serial number &amp; MAC</label><textarea id="f_snmac" rows="3" placeholder="한 줄에 하나씩 입력"></textarea></div>
     </div>
@@ -456,7 +459,7 @@ function render(){
   let filtered=rows.filter(r=>{
     if(envFilter==='NONE' && r.env!=='') return false;
     if(envFilter!=='ALL' && envFilter!=='NONE' && r.env!==envFilter) return false;
-    if(mode==='device' || mode==='oncafe'){
+    if(mode==='device' || mode==='oncafe' || mode==='healthpro'){
       if(soc!=='ALL' && r.soc!==soc) return false;
     }
     if(mode==='device'){
@@ -468,6 +471,8 @@ function render(){
         ? [r.ip,r.device,r.version,r.location,r.cert,r.snmac].join(' ').toLowerCase()
         : mode==='oncafe'
         ? [r.device,r.soc,r.switch,r.ip,r.serial,r.mac,r.slot,r.account,r.orgid,r.sname,r.comment].join(' ').toLowerCase()
+        : mode==='healthpro'
+        ? [r.device,r.resolution,r.soc,r.ip,r.serial,r.powermode,r.mac,r.slot,r.account,r.orgid,r.sname,r.comment,r.etc].join(' ').toLowerCase()
         : [r.device,r.soc,r.ip,r.serial,r.mac,r.account,r.orgid,r.sname,r.comment].join(' ').toLowerCase();
       if(!hay.includes(qLower)) return false;
     }
@@ -521,6 +526,30 @@ function render(){
     </tr>
   `;
     }
+    if(mode==='healthpro'){
+      return `
+    <tr>
+      <td class="delcol">
+        <button class="editbtn" data-id="${r._id}" aria-label="수정" title="수정">&#9998;</button>
+        <button class="delbtn" data-id="${r._id}" aria-label="삭제" title="삭제">&times;</button>
+      </td>
+      <td class="dev">${hl(r.device,q)}</td>
+      <td>${hl(r.resolution||'',q)}</td>
+      <td>${esc(r.soc)}</td>
+      <td class="mono">${hl(r.ip,q)}</td>
+      <td class="mono serial">${hl(r.serial,q)}</td>
+      <td>${hl(r.powermode||'',q)}</td>
+      <td class="mono mac">${hl(r.mac,q)}</td>
+      <td>${badge(r.env)}</td>
+      <td>${hl(r.slot||'',q)}</td>
+      <td class="acct">${hl(r.account||'',q)}</td>
+      <td>${hl(r.orgid||'',q)}</td>
+      <td>${hl(r.sname||'',q)}</td>
+      <td class="cmt">${hl(r.comment||'',q)}</td>
+      <td>${hl(r.etc||'',q)}</td>
+    </tr>
+  `;
+    }
     return `
     <tr>
       <td class="delcol">
@@ -569,6 +598,13 @@ function render(){
           device:get('device'), soc:get('soc'), switch:get('switch'), ip:get('ip'),
           serial:get('serial'), mac:get('mac'), env:get('env'), slot:get('slot'),
           account:get('account'), orgid:get('orgid'), sname:get('sname'), comment:get('comment')
+        };
+      }else if(mode==='healthpro'){
+        updated={
+          device:get('device'), resolution:get('resolution'), soc:get('soc'), ip:get('ip'),
+          serial:get('serial'), powermode:get('powermode'), mac:get('mac'), env:get('env'),
+          slot:get('slot'), account:get('account'), orgid:get('orgid'), sname:get('sname'),
+          comment:get('comment'), etc:get('etc')
         };
       }else{
         updated={
@@ -665,6 +701,30 @@ function editRowHtml(r){
     </tr>
   `;
   }
+  if(mode==='healthpro'){
+    return `
+    <tr class="editing">
+      <td class="delcol">
+        <button class="savebtn" data-id="${r._id}" title="저장">저장</button>
+        <button class="cancelbtn" title="취소">취소</button>
+      </td>
+      <td><input class="editin" name="device" value="${esc(r.device||'')}"></td>
+      <td><input class="editin" name="resolution" value="${esc(r.resolution||'')}"></td>
+      <td><select class="editin" name="soc">${platformOptions(r.soc||'')}</select></td>
+      <td><input class="editin" name="ip" value="${esc(r.ip||'')}"></td>
+      <td><input class="editin" name="serial" value="${esc(r.serial||'')}"></td>
+      <td><input class="editin" name="powermode" value="${esc(r.powermode||'')}"></td>
+      <td><input class="editin" name="mac" value="${esc(r.mac||'')}"></td>
+      <td><select class="editin" name="env">${envOptions(r.env||'')}</select></td>
+      <td><input class="editin" name="slot" value="${esc(r.slot||'')}"></td>
+      <td><input class="editin" name="account" value="${esc(r.account||'')}"></td>
+      <td><input class="editin" name="orgid" value="${esc(r.orgid||'')}"></td>
+      <td><input class="editin" name="sname" value="${esc(r.sname||'')}"></td>
+      <td><input class="editin" name="comment" value="${esc(r.comment||'')}"></td>
+      <td><input class="editin" name="etc" value="${esc(r.etc||'')}"></td>
+    </tr>
+  `;
+  }
   return `
     <tr class="editing">
       <td class="delcol">
@@ -741,6 +801,23 @@ document.getElementById('submitAdd').addEventListener('click',async()=>{
       sname:document.getElementById('f_sname').value.trim(),
       comment:document.getElementById('f_comment').value.trim()
     };
+  }else if(mode==='healthpro'){
+    newRow={
+      device,
+      resolution:document.getElementById('f_resolution').value.trim(),
+      soc:document.getElementById('f_soc').value.trim(),
+      ip:document.getElementById('f_ip').value.trim(),
+      serial:document.getElementById('f_serial').value.trim(),
+      powermode:document.getElementById('f_powermode').value.trim(),
+      mac:document.getElementById('f_mac').value.trim(),
+      env:document.getElementById('f_env').value,
+      slot:document.getElementById('f_slot').value.trim(),
+      account:document.getElementById('f_account').value.trim(),
+      orgid:document.getElementById('f_orgid').value.trim(),
+      sname:document.getElementById('f_sname').value.trim(),
+      comment:document.getElementById('f_comment').value.trim(),
+      etc:document.getElementById('f_etc').value.trim()
+    };
   }else{
     newRow={
       device,
@@ -764,6 +841,8 @@ document.getElementById('submitAdd').addEventListener('click',async()=>{
       ['f_device','f_ip','f_version','f_location','f_cert','f_snmac'].forEach(id=>document.getElementById(id).value='');
     }else if(mode==='oncafe'){
       ['f_device','f_soc','f_switch','f_ip','f_serial','f_mac','f_slot','f_account','f_orgid','f_sname','f_comment'].forEach(id=>document.getElementById(id).value='');
+    }else if(mode==='healthpro'){
+      ['f_device','f_resolution','f_soc','f_ip','f_serial','f_powermode','f_mac','f_slot','f_account','f_orgid','f_sname','f_comment','f_etc'].forEach(id=>document.getElementById(id).value='');
     }else{
       ['f_device','f_soc','f_ip','f_serial','f_mac','f_account','f_orgid','f_sname','f_comment'].forEach(id=>document.getElementById(id).value='');
       document.getElementById('f_compat').checked=false;
@@ -791,8 +870,10 @@ const CSV_HEADERS_CGR = ["IP","장비","버전","상태","위치","인증서 여
 const CSV_FIELDS_CGR  = ["ip","device","version","env","location","cert","snmac"];
 const CSV_HEADERS_ONCAFE = ["Device","Platform","Switch","IP","Serial","Mac","환경","Slot","Account","ORG ID","Short name","비고"];
 const CSV_FIELDS_ONCAFE  = ["device","soc","switch","ip","serial","mac","env","slot","account","orgid","sname","comment"];
-function currentCsvHeaders(){ return mode==='cgr' ? CSV_HEADERS_CGR : mode==='oncafe' ? CSV_HEADERS_ONCAFE : CSV_HEADERS_DEVICE; }
-function currentCsvFields(){ return mode==='cgr' ? CSV_FIELDS_CGR : mode==='oncafe' ? CSV_FIELDS_ONCAFE : CSV_FIELDS_DEVICE; }
+const CSV_HEADERS_HEALTHPRO = ["Device","Resolution","SoC","IP","Serial","Power Mode","MAC","Env","Slot","Account","ORG ID","Short name","Comment","Etc"];
+const CSV_FIELDS_HEALTHPRO  = ["device","resolution","soc","ip","serial","powermode","mac","env","slot","account","orgid","sname","comment","etc"];
+function currentCsvHeaders(){ return mode==='cgr' ? CSV_HEADERS_CGR : mode==='oncafe' ? CSV_HEADERS_ONCAFE : mode==='healthpro' ? CSV_HEADERS_HEALTHPRO : CSV_HEADERS_DEVICE; }
+function currentCsvFields(){ return mode==='cgr' ? CSV_FIELDS_CGR : mode==='oncafe' ? CSV_FIELDS_ONCAFE : mode==='healthpro' ? CSV_FIELDS_HEALTHPRO : CSV_FIELDS_DEVICE; }
 
 document.getElementById('exportBtn').addEventListener('click',()=>{
   const headers=currentCsvHeaders(), fields=currentCsvFields();
@@ -876,9 +957,25 @@ const HEADER_ALIASES_ONCAFE = {
   sname:['shortname'],
   comment:['비고','comment']
 };
+const HEADER_ALIASES_HEALTHPRO = {
+  device:['device'],
+  resolution:['resolution'],
+  soc:['soc','platform'],
+  ip:['ip'],
+  serial:['serial'],
+  powermode:['powermode','power mode'],
+  mac:['mac'],
+  env:['env','환경'],
+  slot:['slot'],
+  account:['account'],
+  orgid:['orgid','org id'],
+  sname:['shortname'],
+  comment:['comment','비고'],
+  etc:['etc']
+};
 function fieldIndexMap(headerRow){
   const norm=headerRow.map(normHeader);
-  const aliasSet = mode==='cgr' ? HEADER_ALIASES_CGR : mode==='oncafe' ? HEADER_ALIASES_ONCAFE : HEADER_ALIASES;
+  const aliasSet = mode==='cgr' ? HEADER_ALIASES_CGR : mode==='oncafe' ? HEADER_ALIASES_ONCAFE : mode==='healthpro' ? HEADER_ALIASES_HEALTHPRO : HEADER_ALIASES;
   const fields = currentCsvFields();
   const map={};
   fields.forEach(f=>{
@@ -1000,6 +1097,45 @@ document.getElementById('importFile').addEventListener('change',async(e)=>{
         if(existingId && !seenSet.has(dupKeyInFile)){ toUpdate.push({id:existingId, data}); seenSet.add(dupKeyInFile); }
         else toAdd.push(data);
       }
+    }else if(mode==='healthpro'){
+      const bySerial=new Map();
+      const byDevice=new Map();
+      rows.forEach(r=>{
+        if(r.serial && r.serial.trim()) bySerial.set(r.serial.trim().toLowerCase(), r._id);
+        if(r.device && r.device.trim()) byDevice.set(r.device.trim().toLowerCase(), r._id);
+      });
+      const seenSerial=new Set(), seenDevice=new Set();
+      for(let i=1;i<table.length;i++){
+        const r=table[i];
+        const device=(r[map.device]||'').trim();
+        if(!device) continue;
+        const serial=map.serial>=0 ? (r[map.serial]||'').trim() : '';
+        const data={
+          device,
+          resolution: map.resolution>=0 ? (r[map.resolution]||'').trim() : '',
+          soc: map.soc>=0 ? (r[map.soc]||'').trim() : '',
+          ip: map.ip>=0 ? (r[map.ip]||'').trim() : '',
+          serial,
+          powermode: map.powermode>=0 ? (r[map.powermode]||'').trim() : '',
+          mac: map.mac>=0 ? (r[map.mac]||'').trim() : '',
+          env: map.env>=0 ? (r[map.env]||'').trim() : '',
+          slot: map.slot>=0 ? (r[map.slot]||'').trim() : '',
+          account: map.account>=0 ? (r[map.account]||'').trim() : '',
+          orgid: map.orgid>=0 ? (r[map.orgid]||'').trim() : '',
+          sname: map.sname>=0 ? (r[map.sname]||'').trim() : '',
+          comment: map.comment>=0 ? (r[map.comment]||'').trim() : '',
+          etc: map.etc>=0 ? (r[map.etc]||'').trim() : ''
+        };
+        const serialKey=serial.toLowerCase();
+        const deviceKey=device.toLowerCase();
+        let existingId=null;
+        if(serial && bySerial.has(serialKey)) existingId=bySerial.get(serialKey);
+        else if(!serial && byDevice.has(deviceKey)) existingId=byDevice.get(deviceKey);
+        const dupKeyInFile = serial ? 'S:'+serialKey : 'D:'+deviceKey;
+        const seenSet = serial ? seenSerial : seenDevice;
+        if(existingId && !seenSet.has(dupKeyInFile)){ toUpdate.push({id:existingId, data}); seenSet.add(dupKeyInFile); }
+        else toAdd.push(data);
+      }
     }else{
       const bySerial=new Map();
       const byDevice=new Map();
@@ -1110,9 +1246,27 @@ const THEAD_ONCAFE = `
   <th data-k="sname">Short name<span class="arrow"></span></th>
   <th data-k="comment">비고<span class="arrow"></span></th>
 `;
+const THEAD_HEALTHPRO = `
+  <th class="delcol"></th>
+  <th data-k="device">Device<span class="arrow"></span></th>
+  <th data-k="resolution">Resolution<span class="arrow"></span></th>
+  <th data-k="soc">SoC<span class="arrow"></span></th>
+  <th data-k="ip">IP<span class="arrow"></span></th>
+  <th data-k="serial">Serial<span class="arrow"></span></th>
+  <th data-k="powermode">Power Mode<span class="arrow"></span></th>
+  <th data-k="mac">MAC<span class="arrow"></span></th>
+  <th data-k="env">Env<span class="arrow"></span></th>
+  <th data-k="slot">Slot<span class="arrow"></span></th>
+  <th data-k="account">Account<span class="arrow"></span></th>
+  <th data-k="orgid">ORG ID<span class="arrow"></span></th>
+  <th data-k="sname">Short name<span class="arrow"></span></th>
+  <th data-k="comment">Comment<span class="arrow"></span></th>
+  <th data-k="etc">Etc<span class="arrow"></span></th>
+`;
 
 function applyModeUI(m){
-  document.getElementById('theadRow').innerHTML = m==='cgr' ? THEAD_CGR : m==='oncafe' ? THEAD_ONCAFE : THEAD_DEVICE;
+  document.getElementById('theadRow').innerHTML =
+    m==='cgr' ? THEAD_CGR : m==='oncafe' ? THEAD_ONCAFE : m==='healthpro' ? THEAD_HEALTHPRO : THEAD_DEVICE;
   document.querySelectorAll('thead th[data-k]').forEach(th=>{
     th.addEventListener('click',()=>{
       const k=th.dataset.k;
@@ -1122,7 +1276,7 @@ function applyModeUI(m){
       render();
     });
   });
-  document.getElementById('platformFilterWrap').style.display = (m==='device'||m==='oncafe') ? '' : 'none';
+  document.getElementById('platformFilterWrap').style.display = (m==='device'||m==='oncafe'||m==='healthpro') ? '' : 'none';
   document.getElementById('compatFilterWrap').style.display = m==='device' ? '' : 'none';
   document.querySelectorAll('#addForm [data-mode]').forEach(el=>{
     const modes=el.dataset.mode.split(' ');
@@ -1136,6 +1290,8 @@ function applyModeUI(m){
     ? 'IP, 장비, 버전, 위치, 인증서 여부, Serial/MAC 검색...'
     : m==='oncafe'
     ? 'Device, Platform, Switch, IP, Serial, Mac, Account, ORG ID, Short name 검색...'
+    : m==='healthpro'
+    ? 'Device, Resolution, SoC, IP, Serial, Mac, Account, ORG ID, Short name, Comment, Etc 검색...'
     : 'Device, IP, Serial, Mac, Account, ORG ID, Short name, 비고 검색...';
   sortKey='device';
   sortDir=1;
@@ -1144,7 +1300,7 @@ function applyModeUI(m){
 function subscribeList(colName){
   if(unsubscribeFn){ unsubscribeFn(); unsubscribeFn=null; }
   listKey = colName;
-  mode = colName==='devicesCGR' ? 'cgr' : colName==='devices5' ? 'oncafe' : 'device';
+  mode = colName==='devicesCGR' ? 'cgr' : colName==='devices5' ? 'oncafe' : colName==='devices2' ? 'healthpro' : 'device';
   devicesCol = collection(db, colName);
   editingId = null;
   rows = [];
