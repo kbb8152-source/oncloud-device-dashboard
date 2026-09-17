@@ -153,7 +153,6 @@
     <button class="btn" id="exportBtn"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:5px;"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>다운로드</button>
     <button class="btn" id="importBtn"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:5px;"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>업로드</button>
     <input type="file" id="importFile" accept=".csv" style="display:none;">
-    <button class="btn" id="dedupBtn">중복 정리</button>
     <span class="count" style="margin-left:auto;">변경사항은 클라우드에 실시간 저장되며 접속한 모든 사용자에게 공유됩니다.</span>
   </div>
 
@@ -542,6 +541,13 @@ function render(){
         };
       }
       if(!updated.device){ alert('필수 항목을 입력해주세요.'); return; }
+      if(mode==='device'){
+        const dup=findDupMatch(updated.serial, updated.mac, id);
+        if(dup){
+          alert(`Serial 또는 Mac이 이미 등록된 항목과 중복됩니다. (기존 항목: ${dup.device||'이름 없음'})`);
+          return;
+        }
+      }
       btn.disabled=true;
       updateDoc(doc(devicesCol,id), updated).then(()=>{
         editingId=null;
@@ -681,6 +687,11 @@ document.getElementById('submitAdd').addEventListener('click',async()=>{
       sname:document.getElementById('f_sname').value.trim(),
       comment:document.getElementById('f_comment').value.trim()
     };
+    const dup=findDupMatch(newRow.serial, newRow.mac, null);
+    if(dup){
+      alert(`Serial 또는 Mac이 이미 등록된 항목과 중복됩니다. (기존 항목: ${dup.device||'이름 없음'})`);
+      return;
+    }
   }
   const submitBtn=document.getElementById('submitAdd');
   submitBtn.disabled=true;
@@ -801,55 +812,18 @@ function parseCompat(v){
   return ['o','y','yes','true','1','호환','호환o'].includes(s);
 }
 
-function dedupKey(r){
-  if(mode==='cgr'){
-    if(r.ip && r.ip.trim()) return 'I:'+r.ip.trim().toLowerCase();
-  }else{
-    if(r.serial && r.serial.trim()) return 'S:'+r.serial.trim().toLowerCase();
-  }
-  return 'D:'+String(r.device||'').trim().toLowerCase();
+// Serial 또는 Mac이 기존 항목과 겹치는지 확인 (excludeId는 수정 중인 항목 자신을 제외하기 위함)
+function findDupMatch(serial, mac, excludeId){
+  const s=(serial||'').trim().toLowerCase();
+  const m=(mac||'').trim().toLowerCase();
+  if(!s && !m) return null;
+  return rows.find(r=>{
+    if(excludeId && r._id===excludeId) return false;
+    const rs=(r.serial||'').trim().toLowerCase();
+    const rm=(r.mac||'').trim().toLowerCase();
+    return (s && rs===s) || (m && rm===m);
+  }) || null;
 }
-function fillScore(r){
-  return Object.keys(r).filter(k=>k!=='_id' && r[k]!==''&&r[k]!==undefined&&r[k]!==null&&r[k]!==false).length;
-}
-
-document.getElementById('dedupBtn').addEventListener('click',async()=>{
-  const groups=new Map();
-  rows.forEach(r=>{
-    if(!(r.device||'').trim() && !(r.ip||'').trim()) return; // 비어있는 항목은 대상에서 제외
-    const key=dedupKey(r);
-    if(!groups.has(key)) groups.set(key, []);
-    groups.get(key).push(r);
-  });
-  const toDelete=[];
-  groups.forEach(group=>{
-    if(group.length<2) return;
-    // 항목이 가장 많이 채워진(완성도 높은) 것을 남기고 나머지는 삭제 대상으로
-    const sorted=[...group].sort((a,b)=>fillScore(b)-fillScore(a));
-    sorted.slice(1).forEach(r=>toDelete.push(r));
-  });
-  if(toDelete.length===0){ alert('중복된 항목이 없습니다.'); return; }
-  const pw=prompt(`중복 ${toDelete.length}개 항목을 삭제하려면 관리자 비밀번호를 입력하세요.`);
-  if(pw===null) return;
-  if(pw!==ADMIN_PASSWORD){ alert('비밀번호가 올바르지 않습니다.'); return; }
-  const preview = toDelete.slice(0,10).map(r=>r.device||r.ip||'(이름 없음)').join(', ') + (toDelete.length>10?' 외...':'');
-  if(!confirm(`중복으로 판단된 ${toDelete.length}개 항목을 삭제할까요?\n(각 그룹에서 가장 정보가 많은 항목만 남깁니다)\n\n${preview}`)) return;
-  const btn=document.getElementById('dedupBtn');
-  btn.disabled=true;
-  try{
-    for(let i=0;i<toDelete.length;i+=450){
-      const chunk=toDelete.slice(i,i+450);
-      const batch=writeBatch(db);
-      chunk.forEach(r=>batch.delete(doc(devicesCol, r._id)));
-      await batch.commit();
-    }
-    alert(`중복 ${toDelete.length}개 항목을 삭제했습니다.`);
-  }catch(err){
-    alert('삭제 실패: '+err.message);
-  }finally{
-    btn.disabled=false;
-  }
-});
 
 document.getElementById('importBtn').addEventListener('click',()=>{
   document.getElementById('importFile').click();
@@ -923,17 +897,20 @@ document.getElementById('importFile').addEventListener('change',async(e)=>{
       }
     }else{
       const bySerial=new Map();
-      const byDevice=new Map();
+      const byMac=new Map();
       rows.forEach(r=>{
-        if(r.serial && r.serial.trim()) bySerial.set(r.serial.trim().toLowerCase(), r._id);
-        if(r.device && r.device.trim()) byDevice.set(r.device.trim().toLowerCase(), r._id);
+        const s=(r.serial||'').trim().toLowerCase();
+        const m=(r.mac||'').trim().toLowerCase();
+        if(s) bySerial.set(s, r._id);
+        if(m) byMac.set(m, r._id);
       });
-      const seenSerial=new Set(), seenDevice=new Set();
+      const pendingSerial=new Map(), pendingMac=new Map();
       for(let i=1;i<table.length;i++){
         const r=table[i];
         const device=(r[map.device]||'').trim();
         if(!device) continue;
         const serial=map.serial>=0 ? (r[map.serial]||'').trim() : '';
+        const macVal=map.mac>=0 ? (r[map.mac]||'').trim() : '';
         const data={
           device,
           compat: map.compat>=0 ? parseCompat(r[map.compat]) : false,
@@ -941,21 +918,33 @@ document.getElementById('importFile').addEventListener('change',async(e)=>{
           env: map.env>=0 ? (r[map.env]||'').trim() : '',
           ip: map.ip>=0 ? (r[map.ip]||'').trim() : '',
           serial,
-          mac: map.mac>=0 ? (r[map.mac]||'').trim() : '',
+          mac: macVal,
           account: map.account>=0 ? (r[map.account]||'').trim() : '',
           orgid: map.orgid>=0 ? (r[map.orgid]||'').trim() : '',
           sname: map.sname>=0 ? (r[map.sname]||'').trim() : '',
           comment: map.comment>=0 ? (r[map.comment]||'').trim() : ''
         };
-        const serialKey=serial.toLowerCase();
-        const deviceKey=device.toLowerCase();
+        const sKey=serial.toLowerCase(), mKey=macVal.toLowerCase();
+        // 1) 기존 등록된 항목(Serial 또는 Mac 일치)이면 그 항목을 업데이트
         let existingId=null;
-        if(serial && bySerial.has(serialKey)) existingId=bySerial.get(serialKey);
-        else if(!serial && byDevice.has(deviceKey)) existingId=byDevice.get(deviceKey);
-        const dupKeyInFile = serial ? 'S:'+serialKey : 'D:'+deviceKey;
-        const seenSet = serial ? seenSerial : seenDevice;
-        if(existingId && !seenSet.has(dupKeyInFile)){ toUpdate.push({id:existingId, data}); seenSet.add(dupKeyInFile); }
-        else toAdd.push(data);
+        if(sKey && bySerial.has(sKey)) existingId=bySerial.get(sKey);
+        else if(mKey && byMac.has(mKey)) existingId=byMac.get(mKey);
+        if(existingId){
+          toUpdate.push({id:existingId, data});
+          if(sKey) bySerial.set(sKey, existingId);
+          if(mKey) byMac.set(mKey, existingId);
+          continue;
+        }
+        // 2) 같은 파일 안에서 이미 추가하기로 한 항목과 Serial/Mac이 겹치면, 새로 추가하지 않고 그 항목을 덮어씀(파일 내 중복 방지)
+        let pendingIdx = sKey && pendingSerial.has(sKey) ? pendingSerial.get(sKey)
+                        : mKey && pendingMac.has(mKey) ? pendingMac.get(mKey) : -1;
+        if(pendingIdx>=0){
+          toAdd[pendingIdx]=data;
+        }else{
+          const idx=toAdd.push(data)-1;
+          if(sKey) pendingSerial.set(sKey, idx);
+          if(mKey) pendingMac.set(mKey, idx);
+        }
       }
     }
 
