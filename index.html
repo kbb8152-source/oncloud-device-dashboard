@@ -881,6 +881,7 @@ document.getElementById('importFile').addEventListener('change',async(e)=>{
     }
 
     const toAdd=[], toUpdate=[];
+    const errors=[];
 
     if(mode==='cgr'){
       const byIp=new Map(), byDevice=new Map();
@@ -939,6 +940,15 @@ document.getElementById('importFile').addEventListener('change',async(e)=>{
           account: map.account>=0 ? (r[map.account]||'').trim() : '',
           comment: map.comment>=0 ? (r[map.comment]||'').trim() : ''
         };
+        if(data.soc && !PLATFORM_OPTIONS.includes(data.soc)){
+          errors.push(`${i+1}행: Platform 값 "${data.soc}"은(는) 목록에 없는 값입니다.`);
+        }
+        if(data.modelseries && !MODEL_SERIES_OPTIONS.includes(data.modelseries)){
+          errors.push(`${i+1}행: Model Series 값 "${data.modelseries}"은(는) 목록에 없는 값입니다.`);
+        }
+        if(data.env && !['QA','STG','Prod'].includes(data.env)){
+          errors.push(`${i+1}행: 환경 값 "${data.env}"은(는) 목록에 없는 값입니다. (QA/STG/Prod만 가능)`);
+        }
         const sKey=serial.toLowerCase(), mKey=macVal.toLowerCase();
         // 1) 기존 등록된 항목(Serial 또는 Mac 일치)이면 그 항목을 업데이트
         let existingId=null;
@@ -963,6 +973,11 @@ document.getElementById('importFile').addEventListener('change',async(e)=>{
       }
     }
 
+    if(errors.length>0){
+      const shown = errors.slice(0,20).join('\n') + (errors.length>20 ? `\n...외 ${errors.length-20}건` : '');
+      alert(`허용되지 않은 값이 있어 가져오기를 중단했습니다. (0건 저장됨)\n\n${shown}`);
+      return;
+    }
     if(toAdd.length===0 && toUpdate.length===0){ alert('유효한 행이 없습니다.'); return; }
     const msg = `총 ${toAdd.length+toUpdate.length}개 행을 처리합니다.\n`
       + `- 신규 추가: ${toAdd.length}개\n`
