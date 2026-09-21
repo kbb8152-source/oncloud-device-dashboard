@@ -177,7 +177,21 @@
           <option value="NOVATEK">NOVATEK</option>
         </select>
       </div>
-      <div class="form-field" data-mode="device"><label>Model Series</label><input id="f_modelseries"></div>
+      <div class="form-field" data-mode="device"><label>Model Series</label>
+        <select id="f_modelseries">
+          <option value="">미지정</option>
+          <option value="X-AI Gen-1">X-AI Gen-1</option>
+          <option value="P-AI Gen-1">P-AI Gen-1</option>
+          <option value="MDC CV2">MDC CV2</option>
+          <option value="Q-AI">Q-AI</option>
+          <option value="X-AI Gen-2">X-AI Gen-2</option>
+          <option value="P-AI Gen-2">P-AI Gen-2</option>
+          <option value="MDC CV5">MDC CV5</option>
+          <option value="MDC Novatek">MDC Novatek</option>
+          <option value="WN9 MDC 2CH">WN9 MDC 2CH</option>
+          <option value="Onvif">Onvif</option>
+        </select>
+      </div>
       <div class="form-field" data-mode="cgr"><label>버전</label><input id="f_version" placeholder="예: 1.3.15"></div>
       <div class="form-field" data-mode="device cgr"><label id="lbl_env">환경</label>
         <select id="f_env"><option value="">미배정</option><option value="QA">QA</option><option value="STG">STG</option><option value="Prod">Prod</option></select>
@@ -585,6 +599,14 @@ function platformOptions(current){
   return opts.map(v=>`<option value="${esc(v)}" ${v===current?'selected':''}>${v===''?'미지정':esc(v)}</option>`).join('');
 }
 
+const MODEL_SERIES_OPTIONS=["X-AI Gen-1","P-AI Gen-1","MDC CV2","Q-AI","X-AI Gen-2","P-AI Gen-2","MDC CV5","MDC Novatek","WN9 MDC 2CH","Onvif"];
+function modelSeriesOptions(current){
+  const opts=['']
+    .concat(MODEL_SERIES_OPTIONS)
+    .concat((current && !MODEL_SERIES_OPTIONS.includes(current)) ? [current] : []);
+  return opts.map(v=>`<option value="${esc(v)}" ${v===current?'selected':''}>${v===''?'미지정':esc(v)}</option>`).join('');
+}
+
 function envOptions(current){
   return ['','QA','STG','Prod'].map(v=>
     `<option value="${v}" ${v===current?'selected':''}>${v===''?'미배정':v}</option>`
@@ -618,7 +640,7 @@ function editRowHtml(r){
       <td><input class="editin" name="device" value="${esc(r.device||'')}"></td>
       <td style="text-align:center;"><input type="checkbox" name="compat" ${r.compat?'checked':''}></td>
       <td><select class="editin" name="soc">${platformOptions(r.soc||'')}</select></td>
-      <td><input class="editin" name="modelseries" value="${esc(r.modelseries||'')}"></td>
+      <td><select class="editin" name="modelseries">${modelSeriesOptions(r.modelseries||'')}</select></td>
       <td><select class="editin" name="env">${envOptions(r.env||'')}</select></td>
       <td><input class="editin" name="ip" value="${esc(r.ip||'')}"></td>
       <td><input class="editin" name="serial" value="${esc(r.serial||'')}"></td>
