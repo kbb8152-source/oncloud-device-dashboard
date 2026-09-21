@@ -61,7 +61,7 @@
   td.mono{font-family:var(--mono);font-size:13px;color:var(--text-2);white-space:nowrap;}
   td.mono.serial{white-space:normal;word-break:break-all;overflow-wrap:anywhere;max-width:calc(21ch + 24px);line-height:1.45;}
   td.mono.mac{white-space:normal;word-break:break-all;overflow-wrap:anywhere;max-width:calc(17ch + 24px);line-height:1.45;}
-  td.cmt{color:var(--text-2);max-width:320px;font-size:13.5px;line-height:1.6;}
+  td.cmt{color:var(--text-2);max-width:320px;font-size:13.5px;line-height:1.6;white-space:pre-line;}
   td.acct{font-size:13px;color:var(--text-2);white-space:nowrap;}
   .badge{display:inline-block;font-size:12.5px;font-weight:600;padding:3px 9px;border-radius:20px;}
   .badge.QA{background:var(--qa-bg);color:var(--qa);}
@@ -201,7 +201,7 @@
       <div class="form-field" data-mode="device"><label>Serial</label><input id="f_serial"></div>
       <div class="form-field" data-mode="device"><label>Mac</label><input id="f_mac"></div>
       <div class="form-field" data-mode="device"><label>Account</label><input id="f_account"></div>
-      <div class="form-field" data-mode="device" style="grid-column:1/-1;"><label>비고</label><input id="f_comment"></div>
+      <div class="form-field" data-mode="device" style="grid-column:1/-1;"><label>비고</label><textarea id="f_comment" rows="3"></textarea></div>
       <div class="form-field" data-mode="cgr"><label>인증서 여부</label><textarea id="f_cert" rows="2" placeholder="예: 인증서 넣은 장비&#10;26/08/11"></textarea></div>
       <div class="form-field" data-mode="cgr" style="grid-column:1/-1;"><label>Serial number &amp; MAC</label><textarea id="f_snmac" rows="3" placeholder="한 줄에 하나씩 입력"></textarea></div>
     </div>
@@ -646,7 +646,7 @@ function editRowHtml(r){
       <td><input class="editin" name="serial" value="${esc(r.serial||'')}"></td>
       <td><input class="editin" name="mac" value="${esc(r.mac||'')}"></td>
       <td><input class="editin" name="account" value="${esc(r.account||'')}"></td>
-      <td><input class="editin" name="comment" value="${esc(r.comment||'')}"></td>
+      <td><textarea class="editin" name="comment" rows="2">${esc(r.comment||'')}</textarea></td>
     </tr>
   `;
 }
