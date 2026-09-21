@@ -127,7 +127,7 @@
   <div class="stats" id="stats"></div>
 
   <div class="controls">
-    <input class="search" id="search" placeholder="Device, IP, Serial, Mac, Account, ORG ID, Short name, 비고 검색...">
+    <input class="search" id="search" placeholder="Device, Platform, Model Series, IP, Serial, Mac, Account, 비고 검색...">
     <span id="envChips">
       <span class="chip active" data-env="ALL">전체</span>
       <span class="chip" data-env="QA">QA</span>
@@ -177,6 +177,7 @@
           <option value="NOVATEK">NOVATEK</option>
         </select>
       </div>
+      <div class="form-field" data-mode="device"><label>Model Series</label><input id="f_modelseries"></div>
       <div class="form-field" data-mode="cgr"><label>버전</label><input id="f_version" placeholder="예: 1.3.15"></div>
       <div class="form-field" data-mode="device cgr"><label id="lbl_env">환경</label>
         <select id="f_env"><option value="">미배정</option><option value="QA">QA</option><option value="STG">STG</option><option value="Prod">Prod</option></select>
@@ -186,8 +187,6 @@
       <div class="form-field" data-mode="device"><label>Serial</label><input id="f_serial"></div>
       <div class="form-field" data-mode="device"><label>Mac</label><input id="f_mac"></div>
       <div class="form-field" data-mode="device"><label>Account</label><input id="f_account"></div>
-      <div class="form-field" data-mode="device"><label>ORG ID</label><input id="f_orgid"></div>
-      <div class="form-field" data-mode="device"><label>Short name</label><input id="f_sname"></div>
       <div class="form-field" data-mode="device" style="grid-column:1/-1;"><label>비고</label><input id="f_comment"></div>
       <div class="form-field" data-mode="cgr"><label>인증서 여부</label><textarea id="f_cert" rows="2" placeholder="예: 인증서 넣은 장비&#10;26/08/11"></textarea></div>
       <div class="form-field" data-mode="cgr" style="grid-column:1/-1;"><label>Serial number &amp; MAC</label><textarea id="f_snmac" rows="3" placeholder="한 줄에 하나씩 입력"></textarea></div>
@@ -206,13 +205,12 @@
           <th data-k="device">Device<span class="arrow"></span></th>
           <th style="text-align:center;">호환성</th>
           <th data-k="soc">Platform<span class="arrow"></span></th>
+          <th data-k="modelseries">Model Series<span class="arrow"></span></th>
           <th data-k="env">환경<span class="arrow"></span></th>
           <th data-k="ip">IP<span class="arrow"></span></th>
           <th data-k="serial">Serial<span class="arrow"></span></th>
           <th data-k="mac">Mac<span class="arrow"></span></th>
           <th data-k="account">Account<span class="arrow"></span></th>
-          <th data-k="orgid">ORG ID<span class="arrow"></span></th>
-          <th data-k="sname">Short name<span class="arrow"></span></th>
           <th data-k="comment">비고<span class="arrow"></span></th>
         </tr>
       </thead>
@@ -458,7 +456,7 @@ function render(){
     if(q){
       const hay = mode==='cgr'
         ? [r.ip,r.device,r.version,r.location,r.cert,r.snmac].join(' ').toLowerCase()
-        : [r.device,r.soc,r.ip,r.serial,r.mac,r.account,r.orgid,r.sname,r.comment].join(' ').toLowerCase();
+        : [r.device,r.soc,r.modelseries,r.ip,r.serial,r.mac,r.account,r.comment].join(' ').toLowerCase();
       if(!hay.includes(qLower)) return false;
     }
     return true;
@@ -498,13 +496,12 @@ function render(){
       <td class="dev">${hl(r.device,q)}</td>
       <td style="text-align:center;">${compatBadge(r.compat)}</td>
       <td>${esc(r.soc)}</td>
+      <td>${hl(r.modelseries||'',q)}</td>
       <td>${badge(r.env)}</td>
       <td class="mono">${hl(r.ip,q)}</td>
       <td class="mono serial">${hl(r.serial,q)}</td>
       <td class="mono mac">${hl(r.mac,q)}</td>
       <td class="acct">${hl(r.account||'',q)}</td>
-      <td>${hl(r.orgid||'',q)}</td>
-      <td>${hl(r.sname||'',q)}</td>
       <td class="cmt">${hl(r.comment,q)}</td>
     </tr>
   `;
@@ -534,9 +531,9 @@ function render(){
         };
       }else{
         updated={
-          device:get('device'), soc:get('soc'), env:get('env'),
+          device:get('device'), soc:get('soc'), modelseries:get('modelseries'), env:get('env'),
           ip:get('ip'), serial:get('serial'), mac:get('mac'),
-          account:get('account'), orgid:get('orgid'), sname:get('sname'),
+          account:get('account'),
           comment:get('comment'), compat:tr.querySelector('[name="compat"]').checked
         };
       }
@@ -621,13 +618,12 @@ function editRowHtml(r){
       <td><input class="editin" name="device" value="${esc(r.device||'')}"></td>
       <td style="text-align:center;"><input type="checkbox" name="compat" ${r.compat?'checked':''}></td>
       <td><select class="editin" name="soc">${platformOptions(r.soc||'')}</select></td>
+      <td><input class="editin" name="modelseries" value="${esc(r.modelseries||'')}"></td>
       <td><select class="editin" name="env">${envOptions(r.env||'')}</select></td>
       <td><input class="editin" name="ip" value="${esc(r.ip||'')}"></td>
       <td><input class="editin" name="serial" value="${esc(r.serial||'')}"></td>
       <td><input class="editin" name="mac" value="${esc(r.mac||'')}"></td>
       <td><input class="editin" name="account" value="${esc(r.account||'')}"></td>
-      <td><input class="editin" name="orgid" value="${esc(r.orgid||'')}"></td>
-      <td><input class="editin" name="sname" value="${esc(r.sname||'')}"></td>
       <td><input class="editin" name="comment" value="${esc(r.comment||'')}"></td>
     </tr>
   `;
@@ -678,13 +674,12 @@ document.getElementById('submitAdd').addEventListener('click',async()=>{
       device,
       compat:document.getElementById('f_compat').checked,
       soc:document.getElementById('f_soc').value.trim(),
+      modelseries:document.getElementById('f_modelseries').value.trim(),
       env:document.getElementById('f_env').value,
       ip:document.getElementById('f_ip').value.trim(),
       serial:document.getElementById('f_serial').value.trim(),
       mac:document.getElementById('f_mac').value.trim(),
       account:document.getElementById('f_account').value.trim(),
-      orgid:document.getElementById('f_orgid').value.trim(),
-      sname:document.getElementById('f_sname').value.trim(),
       comment:document.getElementById('f_comment').value.trim()
     };
     const dup=findDupMatch(newRow.serial, newRow.mac, null);
@@ -700,7 +695,7 @@ document.getElementById('submitAdd').addEventListener('click',async()=>{
     if(mode==='cgr'){
       ['f_device','f_ip','f_version','f_location','f_cert','f_snmac'].forEach(id=>document.getElementById(id).value='');
     }else{
-      ['f_device','f_soc','f_ip','f_serial','f_mac','f_account','f_orgid','f_sname','f_comment'].forEach(id=>document.getElementById(id).value='');
+      ['f_device','f_soc','f_modelseries','f_ip','f_serial','f_mac','f_account','f_comment'].forEach(id=>document.getElementById(id).value='');
       document.getElementById('f_compat').checked=false;
     }
     document.getElementById('f_env').value='';
@@ -720,8 +715,8 @@ function csvEscape(v, delim){
   return s;
 }
 
-const CSV_HEADERS_DEVICE = ["Device","호환성","Platform","환경","IP","Serial","Mac","Account","ORG ID","Short name","비고"];
-const CSV_FIELDS_DEVICE  = ["device","compat","soc","env","ip","serial","mac","account","orgid","sname","comment"];
+const CSV_HEADERS_DEVICE = ["Device","호환성","Platform","Model Series","환경","IP","Serial","Mac","Account","비고"];
+const CSV_FIELDS_DEVICE  = ["device","compat","soc","modelseries","env","ip","serial","mac","account","comment"];
 const CSV_HEADERS_CGR = ["IP","장비","버전","상태","위치","인증서 여부","Serial number & MAC"];
 const CSV_FIELDS_CGR  = ["ip","device","version","env","location","cert","snmac"];
 function currentCsvHeaders(){ return mode==='cgr' ? CSV_HEADERS_CGR : CSV_HEADERS_DEVICE; }
@@ -777,13 +772,12 @@ const HEADER_ALIASES = {
   device:['device'],
   compat:['호환성','compat','compatibility'],
   soc:['platform','soc'],
+  modelseries:['modelseries','model series'],
   env:['환경','env'],
   ip:['ip'],
   serial:['serial'],
   mac:['mac'],
   account:['account'],
-  orgid:['orgid','org id'],
-  sname:['shortname'],
   comment:['비고','comment']
 };
 const HEADER_ALIASES_CGR = {
@@ -915,13 +909,12 @@ document.getElementById('importFile').addEventListener('change',async(e)=>{
           device,
           compat: map.compat>=0 ? parseCompat(r[map.compat]) : false,
           soc: map.soc>=0 ? (r[map.soc]||'').trim() : '',
+          modelseries: map.modelseries>=0 ? (r[map.modelseries]||'').trim() : '',
           env: map.env>=0 ? (r[map.env]||'').trim() : '',
           ip: map.ip>=0 ? (r[map.ip]||'').trim() : '',
           serial,
           mac: macVal,
           account: map.account>=0 ? (r[map.account]||'').trim() : '',
-          orgid: map.orgid>=0 ? (r[map.orgid]||'').trim() : '',
-          sname: map.sname>=0 ? (r[map.sname]||'').trim() : '',
           comment: map.comment>=0 ? (r[map.comment]||'').trim() : ''
         };
         const sKey=serial.toLowerCase(), mKey=macVal.toLowerCase();
@@ -986,13 +979,12 @@ const THEAD_DEVICE = `
   <th data-k="device">Device<span class="arrow"></span></th>
   <th style="text-align:center;">호환성</th>
   <th data-k="soc">Platform<span class="arrow"></span></th>
+  <th data-k="modelseries">Model Series<span class="arrow"></span></th>
   <th data-k="env">환경<span class="arrow"></span></th>
   <th data-k="ip">IP<span class="arrow"></span></th>
   <th data-k="serial">Serial<span class="arrow"></span></th>
   <th data-k="mac">Mac<span class="arrow"></span></th>
   <th data-k="account">Account<span class="arrow"></span></th>
-  <th data-k="orgid">ORG ID<span class="arrow"></span></th>
-  <th data-k="sname">Short name<span class="arrow"></span></th>
   <th data-k="comment">비고<span class="arrow"></span></th>
 `;
 const THEAD_CGR = `
@@ -1029,7 +1021,7 @@ function applyModeUI(m){
   document.getElementById('formErr').textContent = m==='cgr' ? '장비 이름은 필수입니다.' : 'Device 이름은 필수입니다.';
   searchEl.placeholder = m==='cgr'
     ? 'IP, 장비, 버전, 위치, 인증서 여부, Serial/MAC 검색...'
-    : 'Device, IP, Serial, Mac, Account, ORG ID, Short name, 비고 검색...';
+    : 'Device, Platform, Model Series, IP, Serial, Mac, Account, 비고 검색...';
   sortKey='device';
   sortDir=1;
 }
