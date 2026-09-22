@@ -188,7 +188,7 @@
           <option value="P-AI Gen-2">P-AI Gen-2</option>
           <option value="MDC CV5">MDC CV5</option>
           <option value="MDC Novatek">MDC Novatek</option>
-          <option value="WN9 MDC 2CH">WN9 MDC 2CH</option>
+          <option value="MDC 2CH">MDC 2CH</option>
           <option value="Onvif">Onvif</option>
         </select>
       </div>
@@ -599,7 +599,7 @@ function platformOptions(current){
   return opts.map(v=>`<option value="${esc(v)}" ${v===current?'selected':''}>${v===''?'미지정':esc(v)}</option>`).join('');
 }
 
-const MODEL_SERIES_OPTIONS=["X-AI Gen-1","P-AI Gen-1","MDC CV2","Q-AI","X-AI Gen-2","P-AI Gen-2","MDC CV5","MDC Novatek","WN9 MDC 2CH","Onvif"];
+const MODEL_SERIES_OPTIONS=["X-AI Gen-1","P-AI Gen-1","MDC CV2","Q-AI","X-AI Gen-2","P-AI Gen-2","MDC CV5","MDC Novatek","MDC 2CH","Onvif"];
 function modelSeriesOptions(current){
   const opts=['']
     .concat(MODEL_SERIES_OPTIONS)
